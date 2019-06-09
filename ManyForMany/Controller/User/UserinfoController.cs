@@ -48,8 +48,7 @@ namespace ManyForMany.Controller.User
             if (User.HasClaim(OpenIdConnectConstants.Claims.Scope, OpenIdConnectConstants.Scopes.Phone))
             {
                 claims[OpenIdConnectConstants.Claims.PhoneNumber] = await _userManager.GetPhoneNumberAsync(user);
-                claims[OpenIdConnectConstants.Claims.PhoneNumberVerified] =
-                    await _userManager.IsPhoneNumberConfirmedAsync(user);
+                claims[OpenIdConnectConstants.Claims.PhoneNumberVerified] = await _userManager.IsPhoneNumberConfirmedAsync(user);
             }
 
             if (User.HasClaim(OpenIdConnectConstants.Claims.Scope, OpenIddictConstants.Scopes.Roles))

@@ -19,6 +19,16 @@ namespace ManyForMany.Model.Entity
         {
             base.OnModelCreating(builder);
 
+            var order = builder.Entity<Order>();
+            order.HasOne(u => u.Owner);
+            order.HasMany(u => u.InterestedUsers);
+
+            var user = builder.Entity<ApplicationUser>();
+            user.HasMany(x => x.InterestedOrders);
+            user.HasMany(x => x.RejectedOrders);
+            user.HasMany(x => x.OwnOrders);
+
+
             // Customize the ASP.NET Identity model and override the defaults if needed.
             // For example, you can rename the ASP.NET Identity table names and more.
             // Add your customizations after calling base.OnModelCreating(builder);

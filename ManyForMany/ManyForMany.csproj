@@ -53,6 +53,7 @@
     <ProjectReference Include="..\..\HellperDll\GenericHelper\GenericHelper.csproj" />
     <ProjectReference Include="..\..\HellperDll\MultiLanguage\MultiLanguage.csproj" />
     <ProjectReference Include="..\..\HellperDll\MvcHelper\MvcHelper.csproj" />
+    <ProjectReference Include="..\..\HellperDll\StringExtension\StringHelper.csproj" />
   </ItemGroup>
 
 

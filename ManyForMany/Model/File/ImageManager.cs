@@ -27,5 +27,10 @@ namespace ManyForMany.Model.File
         {
             return await fileManager.DownloadFiles<Image>(userId, orderId.ToString());
         }
+
+        public async Task RemoveFiles(string userId, int orderId)
+        {
+            await fileManager.RemoveFiles(userId, orderId.ToString());
+        }
     }
 }

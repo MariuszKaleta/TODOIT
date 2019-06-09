@@ -22,8 +22,8 @@ namespace ManyForMany.Model.File
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, nameof(UploadedFiles)));
 
         public static string[] SupportedImageFormats =
-            Helper.GetAllPropertiesOfType<ImageFormat, ImageFormat>(BindingFlags.Public | BindingFlags.Static).Select(x=>x.ToString().ToLower()).ToArray();
-        
+            Helper.GetAllPropertiesOfType<ImageFormat, ImageFormat>(BindingFlags.Public | BindingFlags.Static).Select(x => x.ToString().ToLower()).ToArray();
+
         public static string LocalPath(params string[] directories) =>
             Path.Combine(UploadedFiles, string.Join(FileConstant.PathSeparator, directories));
 
@@ -67,7 +67,7 @@ namespace ManyForMany.Model.File
         }
 
         public async Task<T[]> DownloadFiles<T>(params string[] directories)
-        where T: File, new()
+        where T : File, new()
         {
             var localPath = LocalPath(directories);
 
@@ -75,6 +75,11 @@ namespace ManyForMany.Model.File
             var tasks = files.Select(File.Load<T>).ToArray();
 
             return await Task.WhenAll(tasks);
+        }
+
+        public async Task RemoveFiles(params string[] directories)
+        {
+            Directory.Delete(LocalPath(directories));
         }
 
 

@@ -20,8 +20,10 @@ namespace AuthorizeTester.Model
 
     public static class SwaggerHelper
     {
+        public static string LocalServer =true ? $"/{Assembly.GetExecutingAssembly().GetName().Name}" : "";
+
 
         public static string XmlPath = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        public static string JsonPath = $"/ManyForMany/swagger/v1/swagger.json";
+        public static string JsonPath = $"{LocalServer}/swagger/v1/swagger.json";
     }
 }

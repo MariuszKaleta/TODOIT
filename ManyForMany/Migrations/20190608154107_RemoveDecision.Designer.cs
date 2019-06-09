@@ -4,14 +4,16 @@ using ManyForMany.Model.Entity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ManyForMany.Migrations
 {
     [DbContext(typeof(Context))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20190608154107_RemoveDecision")]
+    partial class RemoveDecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -80,6 +82,8 @@ namespace ManyForMany.Migrations
 
                     b.Property<int?>("OrderId");
 
+                    b.Property<int?>("OrderId1");
+
                     b.Property<string>("PasswordHash");
 
                     b.Property<string>("PhoneNumber");
@@ -104,6 +108,8 @@ namespace ManyForMany.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderId1");
 
                     b.ToTable("AspNetUsers");
                 });
@@ -394,6 +400,10 @@ namespace ManyForMany.Migrations
                     b.HasOne("ManyForMany.Model.Entity.Ofert.Order")
                         .WithMany("InterestedUsers")
                         .HasForeignKey("OrderId");
+
+                    b.HasOne("ManyForMany.Model.Entity.Ofert.Order")
+                        .WithMany("RejectedUsers")
+                        .HasForeignKey("OrderId1");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

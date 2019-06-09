@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AuthorizeTester.Model;
 using AuthorizeTester.Model.Error;
 using AuthorizeTester.ViewModel.User;
+using ManyForMany.Model.Entity;
 using ManyForMany.Model.Entity.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,17 +22,19 @@ namespace ManyForMany.Controller.User
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly Context _context;
 
-        public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager,
+        public AccountController(UserManager<ApplicationUser> userManager, Context context, SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
+            _context = context;
             _signInManager = signInManager;
             _roleManager = roleManager;
 
         }
 
-        [AllowAnonymous]
+
         [HttpGet(nameof(UserInfo))]
         public async Task<object> UserInfo()
         {
@@ -112,9 +115,17 @@ namespace ManyForMany.Controller.User
             {
                 // Get the information about the user from the external login provider
                 var info = await _signInManager.GetExternalLoginInfoAsync();
+
                 if (info == null) throw new MultiLanguageException(nameof(info), Error.UserNotLogged);
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+
+                var user = new ApplicationUser(_userManager,_context)
+                {
+                    UserName = model.Email,
+                    Email = model.Email
+                };
+
                 var result = await _userManager.CreateAsync(user);
+
                 if (result.Succeeded)
                 {
                     result = await _userManager.AddLoginAsync(user, info);
@@ -129,6 +140,7 @@ namespace ManyForMany.Controller.User
             }
         }
 
+        [AllowAnonymous]
         [HttpGet(nameof(Providers))]
         public async Task<string[]> Providers()
         {
@@ -144,8 +156,5 @@ namespace ManyForMany.Controller.User
         }
 
         #endregion
-        
-       
-        
     }
 }

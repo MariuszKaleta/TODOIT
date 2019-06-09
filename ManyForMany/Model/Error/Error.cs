@@ -11,4 +11,6 @@ namespace AuthorizeTester.Model.Error
         NotAllowedToSignIn,
         UserNotLogged
     }
+
+
 }

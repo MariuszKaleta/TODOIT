@@ -10,6 +10,11 @@ namespace ManyForMany.ViewModel.Order
 {
     public class OrderViewModel
     {
+        public OrderViewModel()
+        {
+
+        }
+
         [Required]
         public string Title { get; set; }
 
@@ -18,5 +23,7 @@ namespace ManyForMany.ViewModel.Order
 
         [NotEmpty]
         public Image[] Images { get; set; }
+
+        public DateTime DeadLine { get; set; }
     }
 }

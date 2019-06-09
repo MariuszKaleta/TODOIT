@@ -24,6 +24,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GenericHelper", "..\Hellper
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ResultFile", "ResultFile", "{D8BBE451-9888-4E3C-9847-337E28F3B510}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StringHelper", "..\HellperDll\StringExtension\StringHelper.csproj", "{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +56,10 @@ Global
 		{590EC090-1550-4AFE-BF42-1ABD8BF8D454}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{590EC090-1550-4AFE-BF42-1ABD8BF8D454}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{590EC090-1550-4AFE-BF42-1ABD8BF8D454}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +70,7 @@ Global
 		{FDD4F5C8-5634-4259-AF5D-2425CBD64F1F} = {B1D807AC-5E95-49CE-9067-54DB6AF5B185}
 		{590EC090-1550-4AFE-BF42-1ABD8BF8D454} = {B1D807AC-5E95-49CE-9067-54DB6AF5B185}
 		{D8BBE451-9888-4E3C-9847-337E28F3B510} = {5C21A681-A1AE-49CD-A9DB-8510B993FC20}
+		{FDFF764B-19D0-48F8-85F8-DD3FACC2DBF7} = {B1D807AC-5E95-49CE-9067-54DB6AF5B185}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3609B427-6B75-48B5-B607-BCDF8D85981B}

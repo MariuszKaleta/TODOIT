@@ -107,8 +107,9 @@ namespace ManyForMany
                     options.UseJsonWebTokens();
                     options.AddEphemeralSigningKey();
 
-                    options.AddCustomGrantTypes();
 
+                    options.AllowRefreshTokenFlow();
+                    options.AddCustomGrantTypes();
                     options.DisableHttpsRequirement();
 
                 })
@@ -116,7 +117,6 @@ namespace ManyForMany
 
             services
                 .AddAuthentication()
-               // .AddCookie()
                 .AddGoogle(o =>
                     {
                         IConfigurationSection google;

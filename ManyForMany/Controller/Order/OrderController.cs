@@ -8,6 +8,7 @@ using ManyForMany.Model.Entity;
 using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Model.Entity.Orders;
 using ManyForMany.Model.Entity.User;
+using ManyForMany.Model.Extension;
 using ManyForMany.Model.File;
 using ManyForMany.ViewModel.Order;
 using Microsoft.AspNetCore.Authorization;
@@ -38,94 +39,26 @@ namespace ManyForMany.Controller
         public UserManager<ApplicationUser> UserManager { get; }
         private ILogger<OrderController> _logger;
         private readonly Context _context;
-        private ImageManager ImageManager = new ImageManager();
+        private ImageManager imageManager = new ImageManager();
+
         #endregion
 
         #region API
 
-        [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPut(nameof(Create))]
-        public async Task Create(OrderViewModel model)
-        {
-            var userTask = UserManager.GetUserAsync(User);
-
-            var order = new Order(model);
-
-            var user = await userTask;
-
-            if (null == user)
-            {
-                throw new MultiLanguageException(nameof(User), Error.ElementDoseNotExist);
-            }
-
-            user.UserOrders.Add(order);
-
-            _context.SaveChanges();
-
-            ImageManager.UploadFile(model.Images, user.Id, order.Id);
-
-            _logger.LogInformation(nameof(ImageManager.UploadFile), model.Images);
-        }
-
-        #region Edit
-
-        [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPut("{id}", nameof(Edit), nameof(Order.Title), "{title}")]
-        public async Task EditTitle(int id, string title)
-        {
-            var user = await UserManager.GetUserAsync(User);
-
-            if (null == user)
-            {
-                _logger.LogError(nameof(User), Error.ElementDoseNotExist.ToString(), id);
-                throw new MultiLanguageException(nameof(User), Error.ElementDoseNotExist);
-            }
-
-            var order =  user.UserOrders.FirstOrDefault(x => x.Id == id);
-
-            if (order == null)
-            {
-                _logger.LogError(nameof(Order.Id), Error.ElementDoseNotExist.ToString(), id);
-                throw new MultiLanguageException(nameof(order), Error.ElementDoseNotExist);
-            }
-
-            order.Title = title;
-
-            _context.SaveChanges();
-        }
-
-        [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPut("{id}", nameof(Edit), nameof(Order.Describe), "{describe}")]
-        public async Task Edit(int id, string describe)
-        {
-            var user = await UserManager.GetUserAsync(User);
-
-            if (null == user)
-            {
-                _logger.LogError(nameof(User), Error.ElementDoseNotExist.ToString(), User);
-                throw new MultiLanguageException(nameof(User), Error.ElementDoseNotExist);
-            }
-
-            var order =  user.UserOrders.FirstOrDefault(x => x.Id == id);
-
-            if (order == null)
-            {
-                _logger.LogError(nameof(Order.Id), Error.ElementDoseNotExist.ToString(), id);
-                throw new MultiLanguageException(nameof(order), Error.ElementDoseNotExist);
-            }
-
-            order.Describe = describe;
-
-            _context.SaveChanges();
-        }
-
-        #endregion
-
         #region Get
+
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpGet(nameof(AvailableStatus))]
+        public async Task<Dictionary<string,int>> AvailableStatus()
+        {
+            return Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>()
+                .ToDictionary(x => x.ToString(), x => (int) x);
+        }
+
 
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpGet("{id}")]
-        public async Task<Order> Get(int id)
+        public async Task<OrderViewModel> Get(int id)
         {
             var order = await _context.Orders.FirstOrDefaultAsync(x => x.Id == id);
 
@@ -134,43 +67,72 @@ namespace ManyForMany.Controller
                 _logger.LogWarning(nameof(Order.Id), Error.ElementDoseNotExist.ToString(), id);
             }
 
-            return order;
+            return order.ToViewModel(imageManager);
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpGet(nameof(LookNew), "{count}")]
-        public async Task<Order[]> LookNew(int count = 1)
+        public async Task<OrderViewModel[]> LookNew(int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
-            var orders = _context.Orders.Except(user.DecidedOrders.Select(x => x.Order)).Except(user.UserOrders);
+            var orders = _context.Orders.Except(user.WatchedAndUserOrders());
 
-            var ordersCount = orders.Count();
-
-            return orders.Take(count < ordersCount ? count : ordersCount).ToArray();
+            return orders.Where(x => x.Status == OrderStatus.LookingForOfert).TryTake(count)
+                .Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(LookWatched), "{count}")]
-        public async Task<Decizion[]> LookWatched(int count = 1)
+        [MvcHelper.Attributes.HttpGet(nameof(Watched), "{count}")]
+        public async Task<OrderViewModel[]> Watched(int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
-            var ordersCount = user.DecidedOrders.Count();
-
-            return user.DecidedOrders.Take(count < ordersCount ? count : ordersCount).ToArray();
+            return user.WatchedOrders().TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPost(nameof(Decide), "{orderId}")] 
-        public async Task Decide(bool decision, int orderId)
+        [MvcHelper.Attributes.HttpGet(nameof(Interested), "{count}")]
+        public async Task<OrderViewModel[]> Interested(int count = 1)
         {
-            var userTask = UserManager.GetUserAsync(User);
+            var user = await UserManager.GetUserAsync(User);
 
-            var orderTask = _context.Orders.FirstOrDefaultAsync(x => x.Id == orderId);
+            return user.InterestedOrders.TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
+        }
 
-            var user = await userTask;
-            var order = await orderTask;
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpGet(nameof(Rejected), "{count}")]
+        public async Task<OrderViewModel[]> Rejected(int count = 1)
+        {
+            var user = await UserManager.GetUserAsync(User);
+
+            return user.RejectedOrders.TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpPost(nameof(Decide), "{orderId}", "{decision}")] 
+        public async Task<bool> Decide(int orderId, bool decision)
+        {
+            var user = await UserManager.GetUserAsync(User);
+            
+            if (user == null)
+            {
+                _logger.LogError(nameof(User), Error.ElementDoseNotExist.ToString(), User);
+                throw new MultiLanguageException(nameof(User), Error.ElementDoseNotExist);
+            }
+
+            var result =  await Decide(user,orderId, decision);
+
+            await _context.SaveChangesAsync();
+
+            return result;
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpPost(nameof(Decide))] 
+        public async Task<bool> Decide(Decide[] elements)
+        {
+            var user = await UserManager.GetUserAsync(User);
 
             if (user == null)
             {
@@ -178,19 +140,57 @@ namespace ManyForMany.Controller
                 throw new MultiLanguageException(nameof(User), Error.ElementDoseNotExist);
             }
 
+            var tasks = elements.Select(x => Decide(user, x.OrderId, x.Decision));
+
+            var result = (await Task.WhenAll(tasks)).All(x => x);
+
+            await _context.SaveChangesAsync();
+
+            return result;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Helper
+
+        private async Task<bool> Decide(ApplicationUser user, int orderId, bool decide)
+        {
+            var order = await _context.Orders
+                .Include(x => x.InterestedUsers)
+                .FirstOrDefaultAsync(x => x.Id == orderId);
+
             if (order == null)
             {
                 _logger.LogError(nameof(Order.Id), Error.ElementDoseNotExist.ToString(), orderId);
                 throw new MultiLanguageException(nameof(order), Error.ElementDoseNotExist);
             }
 
-            var decidedOrder = new Decizion(order, decision);
+            if (order.Status != OrderStatus.LookingForOfert)
+            {
+                return false;
+            }
 
-            user.DecidedOrders.Add(decidedOrder);
-            _context.SaveChangesAsync();
+            order.InterestedUsers.Remove(user);
+            user.InterestedOrders.Remove(order);
+            user.RejectedOrders.Remove(order);
+
+            if (decide)
+            {
+                order.InterestedUsers.Add(user);
+
+                user.InterestedOrders.Add(order);
+            }
+            else
+            {
+                user.RejectedOrders.Add(order);
+            }
+
+            return true;
         }
 
-        #endregion
+        
 
         #endregion
     }

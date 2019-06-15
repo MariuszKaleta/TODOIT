@@ -110,25 +110,25 @@ namespace ManyForMany.Controller.User
         #endregion
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(All), "{count}")]
-        public async Task<OrderViewModel[]> All(int? count)
+        [MvcHelper.Attributes.HttpGet(nameof(All), "{start}", "{count}")]
+        public async Task<OrderViewModel[]> All(int? start = null, int? count = null)
         {
             var user = await UserManager.GetUser(User, _logger);
 
-            return (count == null ? user.OwnOrders : user.OwnOrders.TryTake(count.Value))
+            return (count == null || start == null ? user.OwnOrders : user.OwnOrders.TryTake(start.Value, count.Value))
                 .Select(x => x.ToViewModel(ImageManager)).ToArray();
         }
 
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet("{id}", nameof(InterstedUser), "{count}")]
-        public async Task<UserViewModel[]> InterstedUser(int id, int count)
+        [MvcHelper.Attributes.HttpGet("{id}", nameof(InterstedUser), "{start}", "{count}")]
+        public async Task<UserViewModel[]> InterstedUser(int id, int start, int count)
         {
             var user = await UserManager.GetUser(User, _logger);
 
             var order = user.OwnOrders.GetOrder(id, _logger);
 
-            return order.InterestedUsers.TryTake(count).Select(x => x.ToUserInformation()).ToArray();
+            return order.InterestedUsers.TryTake(start, count).Select(x => x.ToUserInformation()).ToArray();
         }
     }
 }

@@ -7,32 +7,52 @@ namespace ManyForMany.Model.Extension
 {
     public static class Extension
     {
-        public static IEnumerable<TElement> TryTake<TElement>(this IQueryable<TElement> elements, int count)
+        private static void Check(int start, int count)
         {
-            var collectionCount = elements.Count();
+            if (start < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+        }
+
+        public static IEnumerable<TElement> TryTake<TElement>(this IQueryable<TElement> elements,int start, int count)
+        {
+            Check(start, count);
+
+            var collectionCount = elements.Count() - start;
+
+            return elements.Skip(start).Take(count < collectionCount ? count : collectionCount);
+
+        }
+
+        public static IEnumerable<TElement> TryTake<TElement>(this List<TElement> elements, int start, int count)
+        {
+            Check(start, count);
+            var collectionCount = elements.Count() - start;
 
             return elements.Take(count < collectionCount ? count : collectionCount);
         }
 
-        public static IEnumerable<TElement> TryTake<TElement>(this List<TElement> elements, int count)
+        public static IEnumerable<TElement> TryTake<TElement>(this TElement[] elements, int start, int count)
         {
-            var collectionCount = elements.Count();
+            Check(start,count);
+            var collectionCount = elements.Count() - start;
 
             return elements.Take(count < collectionCount ? count : collectionCount);
         }
 
-        public static IEnumerable<TElement> TryTake<TElement>(this TElement[] elements, int count)
+        public static IEnumerable<TElement> TryTake<TElement>(this IEnumerable<TElement> elements, int start, int count)
         {
-            var collectionCount = elements.Count();
+            Check(start,count);
 
-            return elements.Take(count < collectionCount ? count : collectionCount);
-        }
-
-        public static IEnumerable<TElement> TryTake<TElement>(this IEnumerable<TElement> elements, int count)
-        {
             var i = 0;
 
-            using (var enumerator = elements.GetEnumerator())
+            using (var enumerator = elements.Skip(start).GetEnumerator())
             {
                 while (enumerator.MoveNext() && i++< count)
                 {

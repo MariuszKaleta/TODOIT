@@ -71,42 +71,42 @@ namespace ManyForMany.Controller
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(LookNew), "{count}")]
-        public async Task<OrderViewModel[]> LookNew(int count = 1)
+        [MvcHelper.Attributes.HttpGet(nameof(LookNew),"{start}", "{count}")]
+        public async Task<OrderViewModel[]> LookNew(int start = 0, int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
             var orders = _context.Orders.Except(user.WatchedAndUserOrders());
 
-            return orders.Where(x => x.Status == OrderStatus.LookingForOfert).TryTake(count)
+            return orders.Where(x => x.Status == OrderStatus.LookingForOfert).TryTake(start, count)
                 .Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(Watched), "{count}")]
-        public async Task<OrderViewModel[]> Watched(int count = 1)
+        [MvcHelper.Attributes.HttpGet(nameof(Watched), "{start}", "{count}")]
+        public async Task<OrderViewModel[]> Watched(int start,int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
-            return user.WatchedOrders().TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
+            return user.WatchedOrders().TryTake(start ,count).Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(Interested), "{count}")]
-        public async Task<OrderViewModel[]> Interested(int count = 1)
+        [MvcHelper.Attributes.HttpGet(nameof(Interested), "{start}", "{count}")]
+        public async Task<OrderViewModel[]> Interested(int start, int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
-            return user.InterestedOrders.TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
+            return user.InterestedOrders.TryTake(start, count).Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(Rejected), "{count}")]
-        public async Task<OrderViewModel[]> Rejected(int count = 1)
+        [MvcHelper.Attributes.HttpGet(nameof(Rejected), "{start}", "{count}")]
+        public async Task<OrderViewModel[]> Rejected(int start, int count = 1)
         {
             var user = await UserManager.GetUserAsync(User);
 
-            return user.RejectedOrders.TryTake(count).Select(x => x.ToViewModel(imageManager)).ToArray();
+            return user.RejectedOrders.TryTake(start, count).Select(x => x.ToViewModel(imageManager)).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]

@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -17,8 +18,10 @@ using Google.Apis.Auth;
 using ManyForMany.Model.Entity.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MultiLanguage.Exception;
 using MvcHelper;
@@ -27,6 +30,7 @@ using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Mvc.Internal;
 using OpenIddict.Server;
+using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace ManyForMany.Controller.User
 {
@@ -60,7 +64,7 @@ namespace ManyForMany.Controller.User
             if (application == null)
                 throw new MultiLanguageException(nameof(request.ClientId), OpenIdConnectConstants.Errors.InvalidClient);
         }
-
+        
         [HttpPost(AuthorizationHelper.AbsolutePath + AuthorizationHelper.TokenEndPoint)]
         [Produces(Produces.Json)]
         public async Task<IActionResult> Exchange([ModelBinder(typeof(OpenIddictMvcBinder))]
@@ -68,6 +72,7 @@ namespace ManyForMany.Controller.User
         {
             if (request.GrantType == CustomGrantTypes.Google)
             {
+                
                 // Reject the request if the "assertion" parameter is missing.
                 if (string.IsNullOrEmpty(request.Token))
                     throw new MultiLanguageException(nameof(request.Token), Error.ElementDoseNotExist);
@@ -84,15 +89,35 @@ namespace ManyForMany.Controller.User
                         if (!await _signInManager.CanSignInAsync(user))
                             throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
                         // Create a new authentication ticket and return sign in
-                        var ticket = await CreateTicketAsync(request, user);
+                        var ticket = await CreateTicketAsync(request.GetScopes(), user);
                         return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
                     }
                     else
                     {
                         // Create a new ClaimsIdentity containing the claims that
                         // will be used to create an id_token and/or an access token.
-                        var identity = new ClaimsIdentity(OpenIdConnectServerDefaults.AuthenticationScheme);
+                        var identity = new ClaimsIdentity(
+                            OpenIdConnectServerDefaults.AuthenticationScheme,
+                            OpenIdConnectConstants.Claims.Name,
+                            OpenIdConnectConstants.Claims.Role);
 
+                        // Note: the "sub" claim is mandatory and an
+                        // exception is thrown if this claim is missing.
+                        
+                        identity.AddClaim(new Claim(OpenIdConnectConstants.Claims.Subject, payload.Subject)
+                                .SetDestinations(OpenIdConnectConstants.Destinations.AccessToken,
+                                    OpenIdConnectConstants.Destinations.IdentityToken));
+
+                        identity.AddClaim(
+                            new Claim(OpenIdConnectConstants.Claims.Name, payload.Name)
+                                .SetDestinations(OpenIdConnectConstants.Destinations.AccessToken,
+                                    OpenIdConnectConstants.Destinations.IdentityToken));
+
+                        identity.AddClaim(
+                            new Claim(OpenIdConnectConstants.Claims.Email, payload.Email)
+                                .SetDestinations(OpenIdConnectConstants.Destinations.AccessToken,
+                                    OpenIdConnectConstants.Destinations.IdentityToken));
+                        
                         // Create a new authentication ticket holding the user identity.
                         var ticket = new AuthenticationTicket(
                             new ClaimsPrincipal(identity),
@@ -116,7 +141,7 @@ namespace ManyForMany.Controller.User
                 OpenIdConnectConstants.Errors.UnsupportedGrantType);
         }
 
-        private  async Task<AuthenticationTicket> CreateTicketAsync(OpenIdConnectRequest request, ApplicationUser user)
+        private async Task<AuthenticationTicket> CreateTicketAsync(IEnumerable<string> scopes, ApplicationUser user)
         {
             // Create a new ClaimsPrincipal containing the claims that
             // will be used to create an Id_token, a token or a code.
@@ -134,7 +159,7 @@ namespace ManyForMany.Controller.User
                 OpenIdConnectConstants.Scopes.Email,
                 OpenIdConnectConstants.Scopes.Profile,
                 OpenIddictConstants.Scopes.Roles
-            }.Intersect(request.GetScopes()));
+            }.Intersect(scopes));
 
             ticket.SetResources("resource-server");
 
@@ -166,6 +191,26 @@ namespace ManyForMany.Controller.User
             }
 
             return ticket;
+        }
+    }
+
+    public class Authorizer
+    {
+        public string GrantType { get; set; }
+
+        public string Token { get; set; }
+
+        public string[] Scopes { get; set; }
+        public static Authorizer Create(HttpContext httpContext)
+        {
+            var header = httpContext.Request.Form;
+
+            return new Authorizer()
+            {
+                GrantType = header[nameof(GrantType)],
+                Token = header[nameof(Token)],
+                Scopes = header[nameof(Scopes)]
+            };
         }
     }
 }

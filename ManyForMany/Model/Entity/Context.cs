@@ -27,7 +27,8 @@ namespace ManyForMany.Model.Entity
             user.HasMany(x => x.InterestedOrders);
             user.HasMany(x => x.RejectedOrders);
             user.HasMany(x => x.OwnOrders);
-
+            user.HasMany(x => x.InterestedCooperators);
+            user.HasMany(x => x.RejectedCooperators);
 
             // Customize the ASP.NET Identity model and override the defaults if needed.
             // For example, you can rename the ASP.NET Identity table names and more.

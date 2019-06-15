@@ -32,6 +32,12 @@ namespace ManyForMany.Model.Entity.User
 
         #region Proeprties
 
+        public bool ShowPublic { get; set; } = true;
+
+        public List<ApplicationUser> InterestedCooperators { get; private set; }
+
+        public List<ApplicationUser> RejectedCooperators { get; private set; }
+
         public List<Order>  InterestedOrders { get; private set; }
 
         public List<Order>  RejectedOrders { get; private set; }
@@ -69,6 +75,19 @@ namespace ManyForMany.Model.Entity.User
             }
         }
 
+        public static IEnumerable<ApplicationUser> WatchedUsers(this ApplicationUser user)
+        {
+            foreach (var cooperator in user.InterestedCooperators)
+            {
+                yield return cooperator;
+            }
+
+            foreach (var cooperator in user.RejectedCooperators)
+            {
+                yield return cooperator;
+            }
+        }
+
         public static async Task<ApplicationUser> GetUser<T>(this UserManager<ApplicationUser> userManager, ClaimsPrincipal userClaimsPrincipal, ILogger<T> logger)
         {
             var user = await userManager.GetUserAsync(userClaimsPrincipal);
@@ -102,6 +121,11 @@ namespace ManyForMany.Model.Entity.User
             if (user.PhoneNumber != model.PhoneNumber)
             {
                 user.PhoneNumber = model.PhoneNumber;
+            }
+
+            if (user.ShowPublic != model.ShowPublic)
+            {
+                user.ShowPublic = model.ShowPublic;
             }
         }
     }

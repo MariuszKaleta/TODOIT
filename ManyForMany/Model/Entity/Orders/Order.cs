@@ -71,7 +71,8 @@ namespace ManyForMany.Model.Entity.Ofert
             {
                 Describe = order.Describe,
                 Title = order.Title,
-                Images = imageManager.DownladFiles(order.Owner.Id, order.Id).GetAwaiter().GetResult()
+                Images = imageManager.DownladFiles(order.Owner.Id, order.Id).GetAwaiter().GetResult(),
+                CreatedTime = order.CreateTime
             };
         }
 

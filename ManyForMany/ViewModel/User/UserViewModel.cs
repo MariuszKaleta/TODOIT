@@ -31,5 +31,8 @@ namespace ManyForMany.ViewModel.User
         [Required]
         [Phone]
         public string PhoneNumber { get; set; }
+
+        [Required]
+        public bool ShowPublic { get; set; }
     }
 }

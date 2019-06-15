@@ -5,6 +5,7 @@ using ManyForMany.Model.Entity.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ManyForMany.Controller
 {
@@ -23,6 +24,12 @@ namespace ManyForMany.Controller
             _context = context;
         }
 
+        [AllowAnonymous]
+        [HttpGet(nameof(Test))]
+        public void Test()
+        {
+            
+        }
         
         [AllowAnonymous]
         [HttpGet(nameof(ConfigureRoles))]

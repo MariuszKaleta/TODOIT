@@ -24,6 +24,8 @@ namespace ManyForMany.ViewModel.Order
         [NotEmpty]
         public Image[] Images { get; set; }
 
+        public DateTime CreatedTime { get; set; }
+
         public DateTime DeadLine { get; set; }
     }
 }

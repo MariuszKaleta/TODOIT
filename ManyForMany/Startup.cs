@@ -1,62 +1,41 @@
-using System;
-using System.IO;
 using AspNet.Security.OpenIdConnect.Primitives;
-using AuthorizeTester.Model;
-using ManyForMany.Model.Entity;
-using ManyForMany.Model.Entity.User;
-using Microsoft.AspNetCore.Authentication.Google;
+using AuthorizationServer.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenIddict.Abstractions;
-using Swashbuckle.AspNetCore.Swagger;
 
-namespace ManyForMany
+namespace AuthorizationServer
 {
     public class Startup
     {
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            Authentication = Configuration.GetSection(nameof(Authentication));
         }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        public IConfiguration Configuration { get; }
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc();
 
             services.AddDbContext<Context>(options =>
             {
-                string defaultConnection = null;
-
-                defaultConnection = Configuration.GetConnectionString(nameof(defaultConnection));
-
                 // Configure the context to use Microsoft SQL Server.
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
 
-                options.UseSqlServer(
-                    defaultConnection
-                    //Configuration.GetConnectionString("LocalConnection")
-                );
-
+                // Register the entity sets needed by OpenIddict.
+                // Note: use the generic overload if you need
+                // to replace the default OpenIddict entities.
                 options.UseOpenIddict();
             });
 
-            OpenIddict(services);
-            Swagger(services);
-
-            //services.AddMultiLanguageValidation();
-        }
-
-        private void OpenIddict(IServiceCollection services)
-        {
             // Register the Identity services.
             services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores< Context>()
+                .AddEntityFrameworkStores<Context>()
                 .AddDefaultTokenProviders();
 
             // Configure Identity to use the same JWT claims as OpenIddict instead
@@ -70,14 +49,13 @@ namespace ManyForMany
             });
 
             services.AddOpenIddict()
-                
 
                 // Register the OpenIddict core services.
                 .AddCore(options =>
                 {
                     // Register the Entity Framework stores and models.
                     options.UseEntityFrameworkCore()
-                        .UseDbContext<Context>();
+                           .UseDbContext<Context>();
                 })
 
                 // Register the OpenIddict server handler.
@@ -87,112 +65,75 @@ namespace ManyForMany
                     // Note: if you don't call this method, you won't be able to
                     // bind OpenIdConnectRequest or OpenIdConnectResponse parameters.
                     options.UseMvc();
-                    
 
-                    // Enable the authorization, logout, userinfo, and introspection endpoints.
-                    options
-                        .EnableAuthorizationEndpoint(AuthorizationHelper.AuthorizeEndPoint)
-                        .EnableLogoutEndpoint(AuthorizationHelper.LogoutEndPoint)
-                        .EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint)
-                        .EnableUserinfoEndpoint(AuthorizationHelper.UserInfoEndPoint)
-                        ;
+                    // Enable the token endpoint.
+                    options.EnableTokenEndpoint("/connect/token");
 
-                    options.RegisterScopes(OpenIdConnectConstants.Scopes.Email,
-                            OpenIdConnectConstants.Scopes.Profile,
-                            OpenIddictConstants.Scopes.Roles)
-                        ;
+                    // Enable the password flow.
+                    options.AllowPasswordFlow();
 
-                    options.AllowAuthorizationCodeFlow();
-                    options.EnableRequestCaching();
-                    options.UseJsonWebTokens();
-                    options.AddEphemeralSigningKey();
+                    // Accept anonymous clients (i.e clients that don't send a client_id).
+                    options.AcceptAnonymousClients();
 
-                    options.AddCustomGrantTypes();
-
+                    // During development, you can disable the HTTPS requirement.
                     options.DisableHttpsRequirement();
 
+                    // Note: to use JWT access tokens instead of the default
+                    // encrypted format, the following lines are required:
+                    //
+                    // options.UseJsonWebTokens();
+                    // options.AddEphemeralSigningKey();
                 })
+
+                // Register the OpenIddict validation handler.
+                // Note: the OpenIddict validation handler is only compatible with the
+                // default token format or with reference tokens and cannot be used with
+                // JWT tokens. For JWT tokens, use the Microsoft JWT bearer handler.
                 .AddValidation();
 
-            services
-                .AddAuthentication()
-               // .AddCookie()
-                .AddGoogle(o =>
-                    {
-                        IConfigurationSection google;
-                        google = Authentication.GetSection(nameof(google));
+            // If you prefer using JWT, don't forget to disable the automatic
+            // JWT -> WS-Federation claims mapping used by the JWT middleware:
+            //
+            // JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            // JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
+            //
+            // services.AddAuthentication()
+            //     .AddJwtBearer(options =>
+            //     {
+            //         options.Authority = "http://localhost:58795/";
+            //         options.Audience = "resource_server";
+            //         options.RequireHttpsMetadata = false;
+            //         options.TokenValidationParameters = new TokenValidationParameters
+            //         {
+            //             NameClaimType = OpenIdConnectConstants.Claims.Subject,
+            //             RoleClaimType = OpenIdConnectConstants.Claims.Role
+            //         };
+            //     });
 
-                        var googleId = google.GetSection(nameof(GoogleOptions.ClientId)).Value;
-                        var googleSecret = google.GetSection(nameof(GoogleOptions.ClientSecret)).Value;
-          
-                        o.ClientId = googleId;
-                        o.ClientSecret = googleSecret;
-                    }
-                )
-                .AddFacebook(o =>
-                    {
-                        IConfigurationSection facebook;
-                        facebook = Authentication.GetSection(nameof(facebook));
-
-                        o.AppId = facebook.GetSection(nameof(o.AppId)).Value;
-                        o.AppSecret = facebook.GetSection(nameof(o.AppSecret)).Value;
-                    }
-                );
-        }
-
-
-
-        private void Swagger(IServiceCollection services)
-        {
-            //swagger
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new Info()
-                {
-                    Version = "v1",
-                    Title = "API",
-                    Description = "Test API with ASP.NET Core 3.0"
-                });
-
-
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, SwaggerHelper.XmlPath);
-                c.IncludeXmlComments(xmlPath);
-            });
+            // Alternatively, you can also use the introspection middleware.
+            // Using it is recommended if your resource server is in a
+            // different application/separated from the authorization server.
+            //
+            // services.AddAuthentication()
+            //     .AddOAuthIntrospection(options =>
+            //     {
+            //         options.Authority = new Uri("http://localhost:58795/");
+            //         options.Audiences.Add("resource_server");
+            //         options.ClientId = "resource_server";
+            //         options.ClientSecret = "875sqd4s5d748z78z7ds1ff8zz8814ff88ed8ea4z4zzd";
+            //         options.RequireHttpsMetadata = false;
+            //     });
         }
 
         public void Configure(IApplicationBuilder app)
         {
             app.UseDeveloperExceptionPage();
+
             app.UseAuthentication();
 
-            app.UseMvc();
+            app.UseMvcWithDefaultRoute();
 
-            //app.UseWelcomePage();
-            Swagger(app);
-
-            // app.AddMultiLanguageExceptionHandler().
-            //    AddErrorEnum<GeoCoderStatusCode>().
-            //   AddErrorEnum<Error>().
-            //  AddErrorClassWithConstProperties(typeof(OpenIddictConstants.Errors));
-            //  AddErrorClassWithConstProperties(typeof(OpenIdConnectConstants.Errors));
-
+            app.UseWelcomePage();
         }
-
-        private void Swagger(IApplicationBuilder app)
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
-            });
-        }
-
-        #region Propertis
-
-        public static IConfiguration Configuration { get; private set; }
-
-        public static IConfigurationSection Authentication { get; private set; }
-
-        #endregion
     }
 }

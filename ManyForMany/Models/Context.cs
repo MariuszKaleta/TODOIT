@@ -1,19 +1,12 @@
-﻿using ManyForMany.Model.Entity.Ofert;
-using ManyForMany.Model.Entity.User;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace ManyForMany.Model.Entity
+namespace AuthorizationServer.Models
 {
     public class Context : IdentityDbContext<ApplicationUser>
     {
         public Context(DbContextOptions options)
-            : base(options)
-        {
-
-        }
-
-        public DbSet<Order> Orders { get; set; }
+            : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

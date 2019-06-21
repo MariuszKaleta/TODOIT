@@ -1,10 +1,22 @@
+using System;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
 using AuthorizationServer.Models;
+using AuthorizeTester.Model;
+using ManyForMany.Models.Configuration;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenIddict.Abstractions;
+using OpenIddict.Core;
+using OpenIddict.EntityFrameworkCore.Models;
+using OpenIddict.Validation;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace AuthorizationServer
 {
@@ -12,10 +24,10 @@ namespace AuthorizationServer
     {
         public Startup(IConfiguration configuration)
         {
-            Configuration = configuration;
+            configuration.Bind(Configuration);
         }
 
-        public IConfiguration Configuration { get; }
+        public Configuration Configuration { get; set; } = new Configuration();
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -24,23 +36,14 @@ namespace AuthorizationServer
 
             services.AddDbContext<Context>(options =>
             {
-                // Configure the context to use Microsoft SQL Server.
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"));
-
-                // Register the entity sets needed by OpenIddict.
-                // Note: use the generic overload if you need
-                // to replace the default OpenIddict entities.
+                options.UseSqlServer(Configuration.ConnectionStrings.DefaultConnection);
                 options.UseOpenIddict();
             });
 
-            // Register the Identity services.
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<Context>()
                 .AddDefaultTokenProviders();
 
-            // Configure Identity to use the same JWT claims as OpenIddict instead
-            // of the legacy WS-Federation claims it uses by default (ClaimTypes),
-            // which saves you from doing the mapping in your authorization controller.
             services.Configure<IdentityOptions>(options =>
             {
                 options.ClaimsIdentity.UserNameClaimType = OpenIdConnectConstants.Claims.Name;
@@ -49,81 +52,55 @@ namespace AuthorizationServer
             });
 
             services.AddOpenIddict()
-
-                // Register the OpenIddict core services.
                 .AddCore(options =>
                 {
-                    // Register the Entity Framework stores and models.
                     options.UseEntityFrameworkCore()
                            .UseDbContext<Context>();
                 })
 
-                // Register the OpenIddict server handler.
                 .AddServer(options =>
                 {
-                    // Register the ASP.NET Core MVC binder used by OpenIddict.
-                    // Note: if you don't call this method, you won't be able to
-                    // bind OpenIdConnectRequest or OpenIdConnectResponse parameters.
                     options.UseMvc();
+                    options.EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint);
 
-                    // Enable the token endpoint.
-                    options.EnableTokenEndpoint("/connect/token");
-
-                    // Enable the password flow.
                     options.AllowPasswordFlow();
-
-                    // Accept anonymous clients (i.e clients that don't send a client_id).
                     options.AcceptAnonymousClients();
-
-                    // During development, you can disable the HTTPS requirement.
                     options.DisableHttpsRequirement();
-
-                    // Note: to use JWT access tokens instead of the default
-                    // encrypted format, the following lines are required:
-                    //
-                    // options.UseJsonWebTokens();
-                    // options.AddEphemeralSigningKey();
+                    options.AddCustomGrantTypes();
                 })
-
-                // Register the OpenIddict validation handler.
-                // Note: the OpenIddict validation handler is only compatible with the
-                // default token format or with reference tokens and cannot be used with
-                // JWT tokens. For JWT tokens, use the Microsoft JWT bearer handler.
                 .AddValidation();
 
-            // If you prefer using JWT, don't forget to disable the automatic
-            // JWT -> WS-Federation claims mapping used by the JWT middleware:
-            //
-            // JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-            // JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
-            //
-            // services.AddAuthentication()
-            //     .AddJwtBearer(options =>
-            //     {
-            //         options.Authority = "http://localhost:58795/";
-            //         options.Audience = "resource_server";
-            //         options.RequireHttpsMetadata = false;
-            //         options.TokenValidationParameters = new TokenValidationParameters
-            //         {
-            //             NameClaimType = OpenIdConnectConstants.Claims.Subject,
-            //             RoleClaimType = OpenIdConnectConstants.Claims.Role
-            //         };
-            //     });
+            services
+                .AddAuthentication()
+                .AddGoogle(o =>
+                    {
+                        o.ClientId = Configuration.Authentication.Google.ClientId;
+                        o.ClientSecret = Configuration.Authentication.Google.ClientSecret;
+                    }
+                )
+                ;
 
-            // Alternatively, you can also use the introspection middleware.
-            // Using it is recommended if your resource server is in a
-            // different application/separated from the authorization server.
-            //
-            // services.AddAuthentication()
-            //     .AddOAuthIntrospection(options =>
-            //     {
-            //         options.Authority = new Uri("http://localhost:58795/");
-            //         options.Audiences.Add("resource_server");
-            //         options.ClientId = "resource_server";
-            //         options.ClientSecret = "875sqd4s5d748z78z7ds1ff8zz8814ff88ed8ea4z4zzd";
-            //         options.RequireHttpsMetadata = false;
-            //     });
+            Swagger(services);
         }
+
+        private void Swagger(IServiceCollection services)
+        {
+            //swagger
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info()
+                {
+                    Version = "v1",
+                    Title = "API",
+                    Description = "Test API with ASP.NET Core 3.0"
+                });
+
+
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, SwaggerHelper.XmlPath);
+                c.IncludeXmlComments(xmlPath);
+            });
+        }
+
 
         public void Configure(IApplicationBuilder app)
         {
@@ -133,7 +110,63 @@ namespace AuthorizationServer
 
             app.UseMvcWithDefaultRoute();
 
-            app.UseWelcomePage();
+            Swagger(app);
+
+            InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
         }
+
+        private void Swagger(IApplicationBuilder app)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
+            });
+
+
+        }
+
+        private async Task InitializeAsync(IServiceProvider services)
+        {
+            // Create a new service scope to ensure the database context is correctly disposed when this methods returns.
+            using (var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<Context>();
+                await context.Database.EnsureCreatedAsync();
+
+
+                var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictApplication>>();
+
+                var clientId = Configuration.ClientId;
+                var client = await manager.FindByClientIdAsync(clientId);
+
+                if (client == null)
+                {
+                    var descriptor = new OpenIddictApplicationDescriptor
+                    {
+                        ClientId = clientId,
+                        Permissions =
+                        {
+                            OpenIddictConstants.Permissions.Endpoints.Authorization,
+                            OpenIddictConstants.Permissions.Endpoints.Logout,
+                            OpenIddictConstants.Permissions.Endpoints.Token,
+
+                            OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+                            OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                            OpenIddictConstants.Permissions.GrantTypes.Implicit,
+                            OpenIddictConstants.Permissions.GrantTypes.Password,
+                            OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+
+                            OpenIddictConstants.Permissions.Scopes.Email,
+
+                            CustomGrantTypes.Google.ToPermission()
+                        },
+                    };
+
+                    await manager.CreateAsync(descriptor);
+                }
+            }
+        }
+
     }
 }

@@ -1,34 +1,41 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AuthorizationServer.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using OpenIddict.Validation;
 
-namespace AuthorizationServer.Controllers
+namespace ManyForMany.Controller.User
 {
-    [Route("api")]
-    public class ResourceController : Controller
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Identity;
+    using Microsoft.AspNetCore.Mvc;
+    using OpenIddict.Validation;
+
+    namespace AuthorizationServer.Controllers
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-
-        public ResourceController(UserManager<ApplicationUser> userManager)
+        [Route("api")]
+        public class ResourceController : Controller
         {
-            _userManager = userManager;
-        }
+            private readonly UserManager<ApplicationUser> _userManager;
 
-        [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
-        [HttpGet("message")]
-        public async Task<IActionResult> GetMessage()
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            public ResourceController(UserManager<ApplicationUser> userManager)
             {
-                return BadRequest();
+                _userManager = userManager;
             }
 
-            return Content($"{user.UserName} has been successfully authenticated.");
+            [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
+            [HttpGet("message")]
+            public async Task<IActionResult> GetMessage()
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return BadRequest();
+                }
+
+                return Content($"{user.UserName} has been successfully authenticated.");
+            }
         }
     }
 }

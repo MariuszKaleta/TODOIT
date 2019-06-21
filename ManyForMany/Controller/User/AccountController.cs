@@ -1,11 +1,12 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using AspNet.Security.OpenIdConnect.Primitives;
 using AuthorizationServer.Models;
-using AuthorizationServer.ViewModels.Account;
 using AuthorizeTester.Model;
+using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
-using ManyForMany.ViewModel.Account;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +17,6 @@ using OpenIddict.Validation;
 
 namespace AuthorizationServer.Controllers
 {
-    [Authorize]
     public class AccountController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -34,124 +34,75 @@ namespace AuthorizationServer.Controllers
             _context = context;
         }
 
-        //
-        // POST: /Account/Register
-        [HttpPost]
-        [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody] RegisterViewModel model)
+        [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
+        [HttpGet(nameof(UserInfo))]
+        public async Task<object> UserInfo()
         {
-            EnsureDatabaseCreated(_context);
-            if (ModelState.IsValid)
+            var user = await _userManager.GetUserAsync(User);
+
+            return new
             {
-                var user = await _userManager.FindByNameAsync(model.Email);
-                if (user != null)
-                {
-                    return StatusCode(StatusCodes.Status409Conflict);
-                }
+                User = user,
+                Roles = await _userManager.GetRolesAsync(user)
+            };
+        }
 
-                user = new ApplicationUser { UserName = model.Email, Email = model.Email };
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
-                {
-                    _userManager.AddToRoleAsync(user, CustomRoles.BasicUser).GetAwaiter().GetResult();
-                    _context.SaveChanges();
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpPut(nameof(Register), "{provider}")]
+        public async Task Register(string provider, string jwtToken)
+        {
+            ApplicationUser user;
 
-                    return Ok();
+            try
+            {
+                switch (provider)
+                {
+                    case CustomGrantTypes.Google:
+                        var payload = await GoogleJsonWebSignature.ValidateAsync(jwtToken);
+
+                        user = await _userManager.FindByEmailAsync(payload.Email);
+
+                        if (user != null)
+                        {
+                            throw new MultiLanguageException(Errors.UserIsExist, payload.Email);
+                        }
+
+                        user = new ApplicationUser(payload);
+                        break;
+
+                    default:
+                        throw new MultiLanguageException(OpenIdConnectConstants.Errors.UnsupportedGrantType, provider);
+                        break;
                 }
-                AddErrors(result);
+            }
+            catch (InvalidJwtException)
+            {
+                throw new MultiLanguageException(nameof(jwtToken), OpenIdConnectConstants.Errors.AccessDenied);
             }
 
-            // If we got this far, something failed.
-            return BadRequest(ModelState);
-        }
+            var result = await _userManager.CreateAsync(user);
 
-        #region ExternalLogin
-
-        //
-        // POST: /Account/ExternalLogin
-        [MvcHelper.Attributes.HttpGet(nameof(ExternalLogin), "{provider}")]
-        [AllowAnonymous]
-        public ChallengeResult ExternalLogin(string provider, string returnUrl = null)
-        {
-            // Request a redirect to the external login provider.
-            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), nameof(AccountController).GetControllerName(),
-                new { ReturnUrl = returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
-            return new ChallengeResult(provider, properties);
-        }
-
-        // GET: /Account/ExternalLoginCallback
-        [HttpGet(nameof(ExternalLoginCallback))]
-        [AllowAnonymous]
-        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null, string remoteError = null)
-        {
-            var info = await _signInManager.GetExternalLoginInfoAsync();
-
-            if (info == null) throw new MultiLanguageException(nameof(info), Error.UserNotLogged);
-
-            // Sign in the user with this external login provider if the user already has a login.
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, false);
-
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                return string.IsNullOrEmpty(returnUrl) ? Redirect("api/message") : Redirect(returnUrl);
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
             }
 
-            // If the user does not have an account, then ask the user to create an account.
-            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-            await ExternalLoginConfirmation(new ExternalLoginConfirmationViewModel { Email = email });
+            result = await _userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
 
-
-            return Redirect("api/message");
-        }
-
-        //
-        // POST: /Account/ExternalLoginConfirmation
-        [HttpPost(nameof(ExternalLoginConfirmation))]
-        [AllowAnonymous]
-        public async Task ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnUrl = null)
-        {
-            if (ModelState.IsValid)
+            if (!result.Succeeded)
             {
-                // Get the information about the user from the external login provider
-                var info = await _signInManager.GetExternalLoginInfoAsync();
-
-                if (info == null) throw new MultiLanguageException(nameof(info), Error.UserNotLogged);
-
-                var user = new ApplicationUser()
-                {
-                    UserName = model.Email,
-                    Email = model.Email
-                };
-
-                var result = await _userManager.CreateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    _userManager.AddToRoleAsync(user, CustomRoles.BasicUser).GetAwaiter().GetResult();
-                    _context.SaveChanges();
-
-
-                    result = await _userManager.AddLoginAsync(user, info);
-                    if (result.Succeeded)
-                    {
-                        await _signInManager.SignInAsync(user, false);
-                        return;
-                    }
-                }
-
-                AddErrors(result);
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
             }
         }
 
         [AllowAnonymous]
-        [HttpGet(nameof(Providers))]
-        public async Task<string[]> Providers()
+        [MvcHelper.Attributes.HttpGet(nameof(Providers))]
+        public string[] Providers()
         {
-            return (await _signInManager.GetExternalAuthenticationSchemesAsync()).Select(x => x.DisplayName).ToArray();
+            return CustomGrantTypes.All.ToArray();
         }
-
-        #endregion
 
         #region Helpers
 

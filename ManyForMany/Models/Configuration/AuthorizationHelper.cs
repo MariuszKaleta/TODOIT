@@ -15,7 +15,7 @@ namespace ManyForMany.Models.Configuration
 
     public static class SwaggerHelper
     {
-        public static string LocalServer = true ? $"/{Assembly.GetExecutingAssembly().GetName().Name}" : "";
+        public static string LocalServer = false ? $"/{Assembly.GetExecutingAssembly().GetName().Name}" : "";
 
 
         public static string XmlPath = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";

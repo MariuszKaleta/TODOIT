@@ -18,6 +18,7 @@ namespace ManyForMany.Models.Configuration
         public const string UserIsAlredyAdded = "User Is Alredy Added To Project";
         public const string UserIsNotAdded = "User Is Not Added To Project";
         public const string UserIsNotExist = "User Is Not Exist";
+        public const string UserIsExist = "User Is Exist";
 
 
 

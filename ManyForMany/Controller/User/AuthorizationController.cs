@@ -10,12 +10,17 @@ using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Extensions;
 using AspNet.Security.OpenIdConnect.Primitives;
 using AuthorizationServer.Models;
+using AuthorizeTester.Model;
+using Google.Apis.Auth;
+using ManyForMany.Models.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using MultiLanguage.Exception;
+using MvcHelper;
 using OpenIddict.Abstractions;
 using OpenIddict.Mvc.Internal;
 using OpenIddict.Server;
@@ -39,43 +44,43 @@ namespace AuthorizationServer.Controllers
             _userManager = userManager;
         }
 
-        [HttpPost("~/connect/token"), Produces("application/json")]
+        [HttpPost(AuthorizationHelper.AbsolutePath + AuthorizationHelper.TokenEndPoint)]
+        [Produces(Produces.Json)]
         public async Task<IActionResult> Exchange([ModelBinder(typeof(OpenIddictMvcBinder))] OpenIdConnectRequest request)
         {
-            if (request.IsPasswordGrantType())
+            if (request.GrantType == CustomGrantTypes.Google)
             {
-                var user = await _userManager.FindByNameAsync(request.Username);
-                if (user == null)
+                // Reject the request if the "assertion" parameter is missing.
+                if (string.IsNullOrEmpty(request.Token))
+                    throw new MultiLanguageException(nameof(request.Token), Error.ElementDoseNotExist);
+
+                try
                 {
-                    return BadRequest(new OpenIdConnectResponse
-                    {
-                        Error = OpenIdConnectConstants.Errors.InvalidGrant,
-                        ErrorDescription = "The username/password couple is invalid."
-                    });
-                }
+                    // Validate the access token using Google's token validation
+                    var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
 
-                // Validate the username/password parameters and ensure the account is not locked out.
-                var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-                if (!result.Succeeded)
+                    var user = await _userManager.FindByEmailAsync(payload.Email);
+
+                    if (user == null)
+                    {
+                        throw new MultiLanguageException(Errors.UserIsNotExist, payload.Email);
+                    }
+                   
+                    if (!await _signInManager.CanSignInAsync(user))
+                        throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
+                    // Create a new authentication ticket and return sign in
+                    var ticket = await CreateTicketAsync(request, user);
+
+                    return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+                }
+                catch (InvalidJwtException)
                 {
-                    return BadRequest(new OpenIdConnectResponse
-                    {
-                        Error = OpenIdConnectConstants.Errors.InvalidGrant,
-                        ErrorDescription = "The username/password couple is invalid."
-                    });
+                    throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
                 }
-
-                // Create a new authentication ticket.
-                var ticket = await CreateTicketAsync(request, user);
-
-                return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
             }
 
-            return BadRequest(new OpenIdConnectResponse
-            {
-                Error = OpenIdConnectConstants.Errors.UnsupportedGrantType,
-                ErrorDescription = "The specified grant type is not supported."
-            });
+            throw new MultiLanguageException(nameof(request.GrantType),
+                OpenIdConnectConstants.Errors.UnsupportedGrantType);
         }
 
         private async Task<AuthenticationTicket> CreateTicketAsync(OpenIdConnectRequest request, ApplicationUser user)
@@ -92,10 +97,14 @@ namespace AuthorizationServer.Controllers
             // Set the list of scopes granted to the client application.
             ticket.SetScopes(new[]
             {
-                OpenIdConnectConstants.Scopes.OpenId,
-                OpenIdConnectConstants.Scopes.Email,
-                OpenIdConnectConstants.Scopes.Profile,
-                OpenIddictConstants.Scopes.Roles
+                                OpenIddictConstants.Scopes.Email,
+                OpenIddictConstants.Scopes.OfflineAccess,
+                OpenIddictConstants.Scopes.OpenId,
+                OpenIddictConstants.Scopes.Address,
+                OpenIddictConstants.Scopes.Phone,
+                OpenIddictConstants.Scopes.Profile,
+                OpenIddictConstants.Scopes.Roles,
+
             }.Intersect(request.GetScopes()));
 
             ticket.SetResources("resource-server");

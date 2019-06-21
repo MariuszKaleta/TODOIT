@@ -8,8 +8,10 @@ using AuthorizeTester.Model;
 using ManyForMany.Models.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
@@ -63,7 +65,6 @@ namespace AuthorizationServer
                     options.UseMvc();
                     options.EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint);
 
-                    options.AllowPasswordFlow();
                     options.AcceptAnonymousClients();
                     options.DisableHttpsRequirement();
                     options.AddCustomGrantTypes();
@@ -72,12 +73,6 @@ namespace AuthorizationServer
 
             services
                 .AddAuthentication()
-                .AddGoogle(o =>
-                    {
-                        o.ClientId = Configuration.Authentication.Google.ClientId;
-                        o.ClientSecret = Configuration.Authentication.Google.ClientSecret;
-                    }
-                )
                 ;
 
             Swagger(services);
@@ -147,17 +142,10 @@ namespace AuthorizationServer
                         ClientId = clientId,
                         Permissions =
                         {
-                            OpenIddictConstants.Permissions.Endpoints.Authorization,
-                            OpenIddictConstants.Permissions.Endpoints.Logout,
                             OpenIddictConstants.Permissions.Endpoints.Token,
 
-                            OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
-                            OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
-                            OpenIddictConstants.Permissions.GrantTypes.Implicit,
-                            OpenIddictConstants.Permissions.GrantTypes.Password,
-                            OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
-
                             OpenIddictConstants.Permissions.Scopes.Email,
+                            OpenIddictConstants.Permissions.Scopes.Roles,
 
                             CustomGrantTypes.Google.ToPermission()
                         },
@@ -165,8 +153,23 @@ namespace AuthorizationServer
 
                     await manager.CreateAsync(descriptor);
                 }
+
+
+                if (context.Database.GetPendingMigrations().Any())
+                {
+                    await context.Database.MigrateAsync();
+
+                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+                    foreach (var role in CustomRoles.All)
+                    {
+                        if (!await roleManager.RoleExistsAsync(role))
+                        {
+                            await roleManager.CreateAsync(new IdentityRole(role));
+                        }
+                    }
+                }
             }
         }
-
     }
 }

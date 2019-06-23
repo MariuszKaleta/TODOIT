@@ -34,7 +34,7 @@ namespace AuthorizationServer.Controllers
             _context = context;
         }
 
-        [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
+        [Authorize]
         [HttpGet(nameof(UserInfo))]
         public async Task<object> UserInfo()
         {
@@ -48,7 +48,7 @@ namespace AuthorizationServer.Controllers
         }
 
         [AllowAnonymous]
-        [MvcHelper.Attributes.HttpPut(nameof(Register), "{provider}")]
+        [MvcHelper.Attributes.HttpPost(nameof(Register), "{provider}")]
         public async Task Register(string provider, string jwtToken)
         {
             ApplicationUser user;

@@ -7,6 +7,7 @@ using AuthorizationServer.Models;
 using AuthorizeTester.Model;
 using ManyForMany.Models.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Identity;
@@ -72,7 +73,11 @@ namespace AuthorizationServer
                 .AddValidation();
 
             services
-                .AddAuthentication()
+                .AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = OpenIddictValidationDefaults.AuthenticationScheme;
+                        options.DefaultChallengeScheme = OpenIddictValidationDefaults.AuthenticationScheme;
+                    })
                 ;
 
             Swagger(services);

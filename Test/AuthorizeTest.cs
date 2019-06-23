@@ -24,9 +24,9 @@ namespace Test
                 const string email = "bob@le-magnifique.com", password = "}s>EWG@f4g;_v7nB";
 
 
-                //var token = await GetTokenAsync(client, "eyJhbGciOiJSUzI1NiIsImtpZCI6IjY4NjQyODlmZmE1MWU0ZTE3ZjE0ZWRmYWFmNTEzMGRmNDBkODllN2QiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI4MTk2MDg2Mzk0OTEtbjM1azMyYjFyM3M0bW5mcGE2bnByYjhjNTIyNTd1aGwuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI4MTk2MDg2Mzk0OTEtbjM1azMyYjFyM3M0bW5mcGE2bnByYjhjNTIyNTd1aGwuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDAwNzIwNzY1NDI1MzM1MDk5NjMiLCJlbWFpbCI6Iml0dXJpZWwuZ29sQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhdF9oYXNoIjoiNjJHLUU4aGV0QjNDUmJpVDN1Y25idyIsIm5hbWUiOiJCYXJ0b3N6IEdvxYLEmWJpb3dza2kiLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDYuZ29vZ2xldXNlcmNvbnRlbnQuY29tLy1kRWpyM0xuNXlqSS9BQUFBQUFBQUFBSS9BQUFBQUFBQUFHcy9xMFVwYVREbHl1NC9zOTYtYy9waG90by5qcGciLCJnaXZlbl9uYW1lIjoiQmFydG9zeiIsImZhbWlseV9uYW1lIjoiR2_FgsSZYmlvd3NraSIsImxvY2FsZSI6InBsIiwiaWF0IjoxNTYwODgxNzY1LCJleHAiOjE1NjA4ODUzNjV9.ApKIeKhigtp4N38k7htK5eT3MNOg0vAb4BOSNLSedZXiPWQJ7P5CjWuVin8UFRPA4Tmy6HQV398hWlO7IdfXBzjz2qwn25W2QT99yt-hplynh8c8JMXyP4kDtll1CN8WAZiFlNj3XxeFjBVXycAdUls_olQx4OrfMcreztgP6_weuSAeov2GqqVRxWAGrTwpVSdAls08TZ3R1yBSrDrvuTdDx5oZobxHltdu6NgUqqOR-_xdNBvtUTdi3AUMtVimvnji612tmI0ysJ-l1fUigm7hQbB-CRbaZ1v4TxlZ9iQLH1EDmCQ-5kzE9Cz_j0a67AYlkATEgsWWqlNEMCANVQ");
-                //Console.WriteLine("Access token: {0}", token);
-                //Console.WriteLine();
+                //var token = await GetTokenAsync(client, //Console.WriteLine("Access token: {0}", token);
+
+                    //Console.WriteLine();
 
                 var token = await GetTokenAsync(client, email, password);
 

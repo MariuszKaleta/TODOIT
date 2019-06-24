@@ -1,11 +1,13 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
 using AuthorizationServer.Models;
 using AuthorizeTester.Model;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.Order;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -159,22 +161,26 @@ namespace AuthorizationServer
                     await manager.CreateAsync(descriptor);
                 }
 
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-                if (context.Database.GetPendingMigrations().Any())
+                foreach (var role in CustomRoles.All)
                 {
-                    await context.Database.MigrateAsync();
-
-                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-                    foreach (var role in CustomRoles.All)
+                    if (!await roleManager.RoleExistsAsync(role))
                     {
-                        if (!await roleManager.RoleExistsAsync(role))
-                        {
-                            await roleManager.CreateAsync(new IdentityRole(role));
-                        }
+                        await roleManager.CreateAsync(new IdentityRole(role));
                     }
                 }
             }
+        }
+
+        private void CreateSkills(Context context)
+        {
+            var rows =
+                File.ReadAllLines(@"C:\Users\RWSwiss\source\repos\ManyForMany\ManyForMany\Data\Skills.txt");
+
+            var skills = rows.Select(x => new Skill(x)).ToArray();
+            context.Skills.AddRange(skills);
+            context.SaveChanges();
         }
     }
 }

@@ -48,9 +48,9 @@ namespace ManyForMany.Controller.User
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(Roles = CustomRoles.BasicUser)]
+        [Authorize(Roles =  CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpPost()]
-        public async Task Create(OrderViewModel model)
+        public async Task Create(CreateOrderViewModel model)
         {
             var userId = UserManager.GetUserId(User);
 
@@ -66,18 +66,13 @@ namespace ManyForMany.Controller.User
                 Name = model.Title
             };
             */
-            _context.Orders.Add(order);
+            
 
            // _context.Chats.Add(chat);
 
-            _context.SaveChanges();
-
-            //order.ProjectChatId = chat.Id;
+           //order.ProjectChatId = chat.Id;
 
             //user.Chats.Add(chat);
-            user.OwnOrders.Add(order);
-
-            _context.SaveChanges();
 
             if (model.Images != null)
             {
@@ -85,6 +80,12 @@ namespace ManyForMany.Controller.User
 
                 _logger.LogInformation(nameof(ImageManager.UploadOrderImages), model.Images);
             }
+
+            _context.Orders.Add(order);
+
+            user.OwnOrders.Add(order);
+
+            _context.SaveChanges();
         }
 
         /*

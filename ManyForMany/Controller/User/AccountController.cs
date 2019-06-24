@@ -47,62 +47,9 @@ namespace AuthorizationServer.Controllers
             };
         }
 
-        [AllowAnonymous]
-        [MvcHelper.Attributes.HttpPost(nameof(Register), "{provider}")]
-        public async Task Register(string provider, string jwtToken)
-        {
-            ApplicationUser user;
+        
 
-            try
-            {
-                switch (provider)
-                {
-                    case CustomGrantTypes.Google:
-                        var payload = await GoogleJsonWebSignature.ValidateAsync(jwtToken);
-
-                        user = await _userManager.FindByEmailAsync(payload.Email);
-
-                        if (user != null)
-                        {
-                            throw new MultiLanguageException(Errors.UserIsExist, payload.Email);
-                        }
-
-                        user = new ApplicationUser(payload);
-                        break;
-
-                    default:
-                        throw new MultiLanguageException(OpenIdConnectConstants.Errors.UnsupportedGrantType, provider);
-                        break;
-                }
-            }
-            catch (InvalidJwtException)
-            {
-                throw new MultiLanguageException(nameof(jwtToken), OpenIdConnectConstants.Errors.AccessDenied);
-            }
-
-            var result = await _userManager.CreateAsync(user);
-
-            if (!result.Succeeded)
-            {
-                var firstError = result.Errors.FirstOrDefault();
-                throw new MultiLanguageException(firstError.Code, firstError.Description);
-            }
-
-            result = await _userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
-
-            if (!result.Succeeded)
-            {
-                var firstError = result.Errors.FirstOrDefault();
-                throw new MultiLanguageException(firstError.Code, firstError.Description);
-            }
-        }
-
-        [AllowAnonymous]
-        [MvcHelper.Attributes.HttpGet(nameof(Providers))]
-        public string[] Providers()
-        {
-            return CustomGrantTypes.All.ToArray();
-        }
+        
 
         #region Helpers
 

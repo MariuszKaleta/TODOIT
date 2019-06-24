@@ -18,14 +18,26 @@ namespace ManyForMany.Model.File
 
         public const uint NextIndex = 1;
 
-        public static string UploadedFiles { get; } = Path.GetFullPath(
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, nameof(UploadedFiles)));
-
-        public static string[] SupportedImageFormats =
-            Helper.GetAllPropertiesOfType<ImageFormat, ImageFormat>(BindingFlags.Public | BindingFlags.Static).Select(x => x.ToString().ToLower()).ToArray();
+        public static string Content { get; } = Path.GetFullPath(
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, nameof(Content)));
 
         public static string LocalPath(params string[] directories) =>
-            Path.Combine(UploadedFiles, string.Join(FileConstant.PathSeparator, directories));
+            Path.Combine(Content,
+                string.Join(FileConstant.PathSeparator,
+                    directories.Select(RemoveInvalidFileChars)));
+
+        public static readonly string[] InvalidFileNameChars =
+            Path.GetInvalidFileNameChars().Select(x => x.ToString()).ToArray();
+
+        public static string RemoveInvalidFileChars(string text)
+        {
+            foreach (var invalidFileNameChar in InvalidFileNameChars)
+            {
+                text = text.Replace(invalidFileNameChar, string.Empty);
+            }
+
+            return text;
+        }
 
         #endregion
 
@@ -39,39 +51,42 @@ namespace ManyForMany.Model.File
             return (await Task.WhenAll(tasks)).All(x => x);
         }
 
-        public async Task<bool> UploadFile(File file, params string[] directories)
+        public async Task<bool> UploadFile(File file, string directoryPath)
         {
             var isCopied = false;
             //1 check if the file length is greater than 0 bytes 
-            if (file.Data.Length > 0)
+            if (file.Data.Length > ushort.MinValue)
             {
                 var fileName = string.Empty;
 
                 var extension = file.Extension;
 
-                if (SupportedImageFormats.Any(x => x == extension.ToLower()))
-                {
-                    var directoryPath = LocalPath(directories);
-                    Directory.CreateDirectory(directoryPath);
+                await file.Save(Path.ChangeExtension(GetAvailableFilename(directoryPath, fileName), extension));
+                isCopied = true;
 
-                    await file.Save(GetAvailableFilename(directoryPath, fileName));
-                    isCopied = true;
-                }
-                else
-                {
-                    throw new Exception(Exceptions.UnsupportedFileFormat(SupportedImageFormats));
-                }
             }
 
             return isCopied;
         }
 
+        public async Task<bool> UploadFile(File file, params string[] directories)
+        {
+            var directoryPath = LocalPath(directories);
+            Directory.CreateDirectory(directoryPath);
+
+            return await UploadFile(file, directoryPath);
+        }
+
         public async Task<T[]> DownloadFiles<T>(params string[] directories)
-        where T : File, new()
+            where T : File, new()
         {
             var localPath = LocalPath(directories);
-
-            var files = Directory.GetFiles(localPath);
+            return await DownloadFiles<T>(localPath);
+        }
+        public async Task<T[]> DownloadFiles<T>(string directoryPath)
+        where T : File, new()
+        {
+            var files = Directory.GetFiles(directoryPath);
             var tasks = files.Select(File.Load<T>).ToArray();
 
             return await Task.WhenAll(tasks);

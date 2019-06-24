@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Model.Entity.Orders;
 using ManyForMany.Model.File;
+using ManyForMany.Models.Entity.Order;
 using MultiLanguage.Validation.Attributes;
 using MvcHelper.Validation.Attributes;
 
@@ -13,15 +14,7 @@ namespace ManyForMany.ViewModel.Order
 {
     public class OrderViewModel
     {
-        public OrderViewModel(Model.Entity.Ofert.Order order, ImageManager imageManager)
-        {
-            Title = order.Title;
-            Describe = order.Describe;
-            Images = order.Images(imageManager).Result;
-            DeadLine = order.DeadLine;
-        }
-
-        protected OrderViewModel()
+        public OrderViewModel()
         {
 
         }
@@ -35,7 +28,7 @@ namespace ManyForMany.ViewModel.Order
 
         public Image[] Images { get; set; }
 
-        [DateInRange(MustBeAfterToday = true)]
+        [DateInRange(MustBeAfterToday = true, CanBeNull = true)]
         public DateTime DeadLine { get; set; }
     }
 }

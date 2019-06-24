@@ -7,7 +7,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Order
 {
-    public class Skill : IId<int>
+    public class Skill : IId<int>, IName
     {
         private Skill()
         {
@@ -21,6 +21,7 @@ namespace ManyForMany.Models.Entity.Order
 
         [Key]
         public int Id { get; private set; }
+
 
         public string Name { get; private set; }
     }

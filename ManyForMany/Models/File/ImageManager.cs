@@ -28,14 +28,14 @@ namespace ManyForMany.Model.File
             return await fileManager.UploadFile(file, UserDirectory, userId, OrderDirectory, orderId.ToString());
         }
 
-        public async Task<Image[]> DownladOrderImages(string userId, int orderId)
+        public async Task<Image[]> DownladOrderImages(string mail, int orderId)
         {
-            return await fileManager.DownloadFiles<Image>(UserDirectory, userId, OrderDirectory, orderId.ToString());
+            return await fileManager.DownloadFiles<Image>(UserDirectory, mail, OrderDirectory, orderId.ToString());
         }
 
-        public async Task RemoveOrderImages(string userId, int orderId)
+        public async Task RemoveOrderImages(string mail, int orderId)
         {
-            await fileManager.RemoveFiles(UserDirectory, userId, OrderDirectory, orderId.ToString());
+            await fileManager.RemoveFiles(UserDirectory, mail, OrderDirectory, orderId.ToString());
         }
     }
 }

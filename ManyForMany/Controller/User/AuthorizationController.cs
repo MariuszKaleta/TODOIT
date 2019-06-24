@@ -14,6 +14,7 @@ using AuthorizeTester.Model;
 using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -63,9 +64,9 @@ namespace AuthorizationServer.Controllers
 
                     if (user == null)
                     {
-                        throw new MultiLanguageException(Errors.UserIsNotExist, payload.Email);
+                        user = await Register(payload);
                     }
-                   
+
                     if (!await _signInManager.CanSignInAsync(user))
                         throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
                     // Create a new authentication ticket and return sign in
@@ -82,6 +83,17 @@ namespace AuthorizationServer.Controllers
             throw new MultiLanguageException(nameof(request.GrantType),
                 OpenIdConnectConstants.Errors.UnsupportedGrantType);
         }
+
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpGet(nameof(GrantTypes))]
+        public string[] GrantTypes()
+        {
+            return CustomGrantTypes.All.ToArray();
+        }
+
+
+
+        #region Helpers
 
         private async Task<AuthenticationTicket> CreateTicketAsync(OpenIdConnectRequest request, ApplicationUser user)
         {
@@ -140,5 +152,36 @@ namespace AuthorizationServer.Controllers
 
             return ticket;
         }
+
+        private async Task<ApplicationUser> Register(GoogleJsonWebSignature.Payload payload)
+        {
+            var user = new ApplicationUser(payload);
+
+            await Register(user);
+
+            return user;
+        }
+
+        private async Task Register(ApplicationUser user)
+        {
+            var result = await _userManager.CreateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
+            }
+
+            result = await _userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
+
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
+            }
+        }
+
+        #endregion
+
     }
 }

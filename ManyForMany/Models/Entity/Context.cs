@@ -1,4 +1,6 @@
 ﻿using ManyForMany.Model.Entity.Ofert;
+using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Order;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +16,8 @@ namespace AuthorizationServer.Models
         #region Properties
 
         public DbSet<Order> Orders { get; set; }
+
+        public DbSet<Skill> Skills { get; set; }
 
         #endregion
 

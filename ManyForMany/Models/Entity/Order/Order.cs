@@ -8,6 +8,7 @@ using ManyForMany.Controller;
 using ManyForMany.Model.Entity.Orders;
 using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.Order;
 using ManyForMany.ViewModel.Order;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,8 +26,8 @@ namespace ManyForMany.Model.Entity.Ofert
 
         }
 
-        public Order(OrderViewModel model, ApplicationUser owner)
-        {
+        public Order(CreateOrderViewModel model,   ApplicationUser owner)
+        {//TODO Add Required Skills
             Title = model.Title;
             Describe = model.Describe;
             OwnerId = owner.Id;
@@ -59,6 +60,9 @@ namespace ManyForMany.Model.Entity.Ofert
         public List<ApplicationUser> InterestedUsers { get; private set; }
 
         public List<ApplicationUser> ActualTeam { get; private set; }
+
+        public List<Skill> RequiredSkills { get; private set; }
+        public List<Skill> GoodIfHave { get; private set; }
     }
 
     public enum OrderStatus

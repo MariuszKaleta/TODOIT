@@ -57,11 +57,10 @@ namespace ManyForMany.Controller
 
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpGet("{id}")]
-        public async Task<ShowPublicOrderViewModel> Get(int id)
+        public ShowPublicOrderViewModel Get(int id)
         {
-            var order = await _context.Orders.Get(id, _logger);
 
-            return order.ToPublicInformation(imageManager);
+            return _context.Orders.ToPublicInformation(id, _logger, imageManager);
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
@@ -81,7 +80,7 @@ namespace ManyForMany.Controller
             var orders = _context.Orders.Except(watched);
 
             return orders.Where(x => x.Status == OrderStatus.CompleteTeam).TryTake(start, count)
-                .Select(x => x.ToPublicInformation(imageManager)).ToArray();
+                .ToPublicInformation(imageManager).ToArray();
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]

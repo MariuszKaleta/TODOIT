@@ -59,7 +59,7 @@ namespace ManyForMany.Controller.User
                 .Include(x => x.OwnOrders)
                 .Get(userId, _logger);
 
-            var order = new Order(model, user);
+            var order = new Order(model, user,_logger,_context.Skills);
             /*
             var chat = new Chat(user)
             {

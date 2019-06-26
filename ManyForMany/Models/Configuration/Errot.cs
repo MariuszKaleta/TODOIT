@@ -20,10 +20,12 @@ namespace ManyForMany.Models.Configuration
         public const string UserIsNotExist = "User Is Not Exist";
         public const string UserIsExist = "User Is Exist";
 
-
-
+        
         public const string OrderIsNotExistInList = "Order Is Not Exist In List";
         public const string UserIsNotInterestedOrder = "User Is Not Interested Order";
+
+        public const string SkillIsAlreadyExist = "Skill Is Already Exist";
+        public const string SkillIsNotExistInList = "Skill Is Not Exist In List";
 
     }
 }

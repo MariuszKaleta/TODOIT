@@ -7,9 +7,9 @@ namespace ManyForMany.ViewModel.Order
 {
     public class CreateOrderViewModel : OrderViewModel
     {
-        public List<int> RequiredSkills { get; set; }
+        public int[] RequiredSkills { get; set; }
 
-        public List<int> GoodIfHave { get; set; }
+        public int[] GoodIfHave { get; set; }
     }
 
 

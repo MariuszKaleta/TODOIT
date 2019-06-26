@@ -22,6 +22,7 @@ using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Validation;
 using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.AspNet.SignalR;
 
 namespace AuthorizationServer
 {
@@ -106,6 +107,8 @@ namespace AuthorizationServer
 
         public void Configure(IApplicationBuilder app)
         {
+            app.MapSignalR();
+
             app.UseDeveloperExceptionPage();
 
             app.UseAuthentication();

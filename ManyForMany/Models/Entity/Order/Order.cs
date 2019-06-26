@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using MultiLanguage.Validation.Attributes;
+using MvcHelper;
 using MvcHelper.Entity;
 using MvcHelper.Validation.Attributes;
 
@@ -26,7 +27,7 @@ namespace ManyForMany.Model.Entity.Ofert
 
         }
 
-        public Order(CreateOrderViewModel model,   ApplicationUser owner)
+        public Order(CreateOrderViewModel model,  ApplicationUser owner, ILogger logger, IQueryable<Skill> dataSkills)
         {//TODO Add Required Skills
             Title = model.Title;
             Describe = model.Describe;
@@ -34,6 +35,9 @@ namespace ManyForMany.Model.Entity.Ofert
             CreateTime = DateTime.Now;
             DeadLine = model.DeadLine;
             Status = OrderStatus.CompleteTeam;
+
+            RequiredSkills.Add(model.RequiredSkills, dataSkills);
+            GoodIfHave.Add(model.RequiredSkills, dataSkills);
         }
 
         [Key]
@@ -62,6 +66,7 @@ namespace ManyForMany.Model.Entity.Ofert
         public List<ApplicationUser> ActualTeam { get; private set; }
 
         public List<Skill> RequiredSkills { get; private set; }
+
         public List<Skill> GoodIfHave { get; private set; }
     }
 
@@ -76,15 +81,30 @@ namespace ManyForMany.Model.Entity.Ofert
 
     public static class OrderExtension
     {
-        public static async Task<Order> Get<T>(this IQueryable<Order> users, int id, ILogger<T> logger)
+        public static async Task<Order> Get(this IQueryable<Order> users, int id, ILogger logger)
         {
             return await users.Get(id, Errors.OrderIsNotExistInList, logger);
         }
-        public static Order Get<T>(this IEnumerable<Order> users, int id, ILogger<T> logger)
+        public static Order Get(this IEnumerable<Order> users, int id, ILogger logger)
         {
             return users.Get(id, Errors.OrderIsNotExistInList, logger);
         }
 
+        public static ShowPublicOrderViewModel ToPublicInformation(this IQueryable<Order> orders, int id, ILogger _logger, ImageManager imageManager)
+        {
+            return orders
+                .Include(x => x.RequiredSkills)
+                .Include(x => x.GoodIfHave)
+                .Get(id, _logger).GetAwaiter()
+                .GetResult().ToPublicInformation(imageManager);
+        }
+        public static IEnumerable<ShowPublicOrderViewModel> ToPublicInformation(this IQueryable<Order> orders, ImageManager imageManager)
+        {
+            return orders
+                .Include(x => x.RequiredSkills)
+                .Include(x => x.GoodIfHave)
+                .Select(x=>x.ToPublicInformation(imageManager));
+        }
 
         public static ShowPublicOrderViewModel ToPublicInformation(this Order order, ImageManager imageManager)
         {

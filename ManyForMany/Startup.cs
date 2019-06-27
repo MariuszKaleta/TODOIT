@@ -11,6 +11,7 @@ using ManyForMany.Models.Entity.Order;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,27 +23,41 @@ using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Validation;
 using Swashbuckle.AspNetCore.Swagger;
-using Microsoft.AspNet.SignalR;
+using SignalRChat;
 
 namespace AuthorizationServer
 {
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
         {
-            configuration.Bind(Configuration);
+            configuration.Bind(Configur);
         }
 
-        public Configuration Configuration { get; set; } = new Configuration();
+        public Configuration Configur { get; set; } = new Configuration();
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
+            {
+                builder
+                    .AllowCredentials()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .WithOrigins("http://localhost/ManyForMany");
+            }));
+            services.AddSignalR(x =>
+            {
+                x.EnableDetailedErrors = true;
+            });
+
             services.AddCors();
             services.AddMvc();
 
             services.AddDbContext<Context>(options =>
             {
-                options.UseSqlServer(Configuration.ConnectionStrings.DefaultConnection);
+                options.UseSqlServer(Configur.ConnectionStrings.DefaultConnection);
                 options.UseOpenIddict();
             });
 
@@ -107,8 +122,6 @@ namespace AuthorizationServer
 
         public void Configure(IApplicationBuilder app)
         {
-            app.MapSignalR();
-
             app.UseDeveloperExceptionPage();
 
             app.UseAuthentication();
@@ -116,6 +129,15 @@ namespace AuthorizationServer
             app.UseMvcWithDefaultRoute();
 
             Swagger(app);
+
+
+            app.UseCors("CorsPolicy");
+
+            app.UseSignalR(routes =>
+            {
+                routes.MapHub<ChatHub>($"{MvcHelper.AttributeHelper.AddressPathSeparator}{nameof(ChatHub)}",
+                    x => { });
+            });
 
             InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
         }
@@ -127,8 +149,6 @@ namespace AuthorizationServer
             {
                 c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
             });
-
-
         }
 
         private async Task InitializeAsync(IServiceProvider services)
@@ -142,7 +162,7 @@ namespace AuthorizationServer
 
                 var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictApplication>>();
 
-                var clientId = Configuration.ClientId;
+                var clientId = Configur.ClientId;
                 var client = await manager.FindByClientIdAsync(clientId);
 
                 if (client == null)

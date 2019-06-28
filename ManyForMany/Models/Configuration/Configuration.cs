@@ -13,6 +13,8 @@ namespace ManyForMany.Models.Configuration
         public Logging Logging { get; set; }
         public string ClientId { get; set; }
         public string AllowedHosts { get; set; }
+
+        public string Policy { get; set; }
     }
 
     public class Connectionstrings

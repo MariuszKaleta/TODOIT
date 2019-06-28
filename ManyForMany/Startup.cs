@@ -39,13 +39,12 @@ namespace AuthorizationServer
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
+            services.AddCors(o => o.AddPolicy(Configur.Policy, builder =>
             {
                 builder
                     .AllowCredentials()
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .WithOrigins("http://localhost/ManyForMany");
+                    .AllowAnyHeader();
             }));
             services.AddSignalR(x =>
             {
@@ -131,7 +130,7 @@ namespace AuthorizationServer
             Swagger(app);
 
 
-            app.UseCors("CorsPolicy");
+            app.UseCors(Configur.Policy);
 
             app.UseSignalR(routes =>
             {

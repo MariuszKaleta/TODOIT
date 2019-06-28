@@ -47,6 +47,8 @@ namespace AuthorizationServer.Controllers
             };
         }
 
+
+        //TODO add skill editor and parameter contorller
         
 
         

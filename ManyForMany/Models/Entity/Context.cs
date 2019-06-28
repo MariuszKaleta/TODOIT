@@ -1,5 +1,6 @@
 ﻿using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Chat;
 using ManyForMany.Models.Entity.Order;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,8 @@ namespace AuthorizationServer.Models
 
         public DbSet<Order> Orders { get; set; }
 
+        public DbSet<Chat> Chats { get; set; }
+
         public DbSet<Skill> Skills { get; set; }
 
         #endregion
@@ -33,10 +36,16 @@ namespace AuthorizationServer.Models
             user.HasMany(x => x.OwnOrders);
             user.HasMany(x => x.RejectedOrders);
 
+            user.HasMany(x => x.Chats);
+
             var order = builder.Entity<Order>();
 
             order.HasMany(x => x.ActualTeam);
             order.HasMany(x => x.InterestedUsers);
+
+            var chat = builder.Entity<Chat>();
+
+            chat.HasMany(x => x.Members);
 
             // Customize the ASP.NET Identity model and override the defaults if needed.
             // For example, you can rename the ASP.NET Identity table names and more.

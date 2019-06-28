@@ -6,6 +6,8 @@ using AuthorizeTester.Model;
 using Google.Apis.Auth;
 using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.Chat;
+using ManyForMany.Models.Entity.Order;
 using ManyForMany.ViewModel.User;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -38,7 +40,22 @@ namespace AuthorizationServer.Models
         public string Picture { get; private set; }
 
         public string Name { get; private set; }
+
         public string SurName { get; private set; }
+
+        #region Skills
+
+        public List<Skill> Skills { get; private set; }
+
+        #endregion
+
+        #region Team
+
+        public List<Chat> Chats { get; private set; }
+
+        #endregion
+
+        #region Order
 
         public List<Order> InterestedOrders { get; private set; }
 
@@ -47,6 +64,10 @@ namespace AuthorizationServer.Models
         public List<Order> OwnOrders { get; private set; }
 
         public List<Order> MemberOfOrders { get; private set; }
+
+
+        #endregion
+
 
         #endregion
 
@@ -117,11 +138,17 @@ namespace AuthorizationServer.Models
             return  new UserThumbnailViewModel(user);
         }
 
-        public static async Task<ApplicationUser> Get<T>(this IQueryable<ApplicationUser> users, string id, ILogger<T> logger)
+        public static async Task<ApplicationUser> Get(this IQueryable<ApplicationUser> users, string id, ILogger logger)
         {
             return await users.Get(id, Errors.UserIsNotExist, logger);
         }
-        public static ApplicationUser Get<T>(this IEnumerable<ApplicationUser> users, string id, ILogger<T> logger)
+
+        public static IQueryable<ApplicationUser> Get<T>(this IQueryable<ApplicationUser> users, IEnumerable<string> id)
+        {
+            return  users.Get(id);
+        }
+
+        public static ApplicationUser Get(this IEnumerable<ApplicationUser> users, string id, ILogger logger)
         {
             return users.Get(id, Errors.UserIsNotExist, logger);
         }

@@ -27,5 +27,8 @@ namespace ManyForMany.Models.Configuration
         public const string SkillIsAlreadyExist = "Skill Is Already Exist";
         public const string SkillIsNotExistInList = "Skill Is Not Exist In List";
 
+        public const string ChatIsNotExist = "Chat Is Not Exist";
+        public const string ChatIsExist = "Chat Is Exist";
+        public const string ThisIsNotYourChat = "This is not your chat";
     }
 }

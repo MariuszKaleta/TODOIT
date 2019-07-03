@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ManyForMany.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20190623120853_AddOrder")]
-    partial class AddOrder
+    [Migration("20190629203544_New")]
+    partial class New
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -27,6 +27,8 @@ namespace ManyForMany.Migrations
                         .ValueGeneratedOnAdd();
 
                     b.Property<int>("AccessFailedCount");
+
+                    b.Property<string>("ChatId");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken();
@@ -48,9 +50,9 @@ namespace ManyForMany.Migrations
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256);
 
-                    b.Property<int?>("OrderId");
+                    b.Property<string>("OrderId");
 
-                    b.Property<int?>("OrderId1");
+                    b.Property<string>("OrderId1");
 
                     b.Property<string>("PasswordHash");
 
@@ -71,6 +73,8 @@ namespace ManyForMany.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ChatId");
+
                     b.HasIndex("NormalizedEmail")
                         .HasName("EmailIndex");
 
@@ -88,9 +92,8 @@ namespace ManyForMany.Migrations
 
             modelBuilder.Entity("ManyForMany.Model.Entity.Ofert.Order", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd();
 
                     b.Property<string>("ApplicationUserId");
 
@@ -125,7 +128,95 @@ namespace ManyForMany.Migrations
 
                     b.HasIndex("ApplicationUserId3");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Chat.Chat", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AdminId");
+
+                    b.Property<string>("ApplicationUserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.ToTable("Chats");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Chat.Message", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AuthorId");
+
+                    b.Property<string>("ChatId");
+
+                    b.Property<DateTime>("CreateTime");
+
+                    b.Property<string>("Text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
+
+                    b.ToTable("Message");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Order.Skill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("ApplicationUserId");
+
+                    b.Property<string>("Name")
+                        .IsRequired();
+
+                    b.Property<string>("OrderId");
+
+                    b.Property<string>("OrderId1");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderId1");
+
+                    b.ToTable("Skills");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Rate.Opinion", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AuthorId");
+
+                    b.Property<string>("OrderId");
+
+                    b.Property<int>("Quality");
+
+                    b.Property<int>("Salary");
+
+                    b.Property<string>("Text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Opinion");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -391,6 +482,10 @@ namespace ManyForMany.Migrations
 
             modelBuilder.Entity("AuthorizationServer.Models.ApplicationUser", b =>
                 {
+                    b.HasOne("ManyForMany.Models.Entity.Chat.Chat")
+                        .WithMany("Members")
+                        .HasForeignKey("ChatId");
+
                     b.HasOne("ManyForMany.Model.Entity.Ofert.Order")
                         .WithMany("ActualTeam")
                         .HasForeignKey("OrderId");
@@ -417,6 +512,51 @@ namespace ManyForMany.Migrations
                     b.HasOne("AuthorizationServer.Models.ApplicationUser")
                         .WithMany("RejectedOrders")
                         .HasForeignKey("ApplicationUserId3");
+
+                    b.HasOne("AuthorizationServer.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Chat.Chat", b =>
+                {
+                    b.HasOne("AuthorizationServer.Models.ApplicationUser")
+                        .WithMany("Chats")
+                        .HasForeignKey("ApplicationUserId");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Chat.Message", b =>
+                {
+                    b.HasOne("ManyForMany.Models.Entity.Chat.Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Order.Skill", b =>
+                {
+                    b.HasOne("AuthorizationServer.Models.ApplicationUser")
+                        .WithMany("Skills")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("ManyForMany.Model.Entity.Ofert.Order")
+                        .WithMany("GoodIfHave")
+                        .HasForeignKey("OrderId");
+
+                    b.HasOne("ManyForMany.Model.Entity.Ofert.Order")
+                        .WithMany("RequiredSkills")
+                        .HasForeignKey("OrderId1");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Rate.Opinion", b =>
+                {
+                    b.HasOne("AuthorizationServer.Models.ApplicationUser", "Author")
+                        .WithMany("OpinionsAboutMe")
+                        .HasForeignKey("AuthorId");
+
+                    b.HasOne("ManyForMany.Model.Entity.Ofert.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

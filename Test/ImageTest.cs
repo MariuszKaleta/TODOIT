@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ManyForMany.Model.Entity.Orders;
 using ManyForMany.Model.File;
+using ManyForMany.ViewModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test
@@ -10,21 +10,23 @@ namespace Test
     [TestClass]
     public class ImageTest
     {
-        private static ImageManager ImageManager = new ImageManager();
+        private static OrderFileManager _orderFileManager = new OrderFileManager();
 
         [TestMethod]
         public void Upload()
         {
-            ImageManager.UploadOrderImages(new Image()
+            var file = new FileViewModel()
             {
                 Data = "jpg",
                 Extension = "a"
-            }, "40ffb216-1d67-46b5-937e-0b6039fab2f9", 2).GetAwaiter().GetResult();
+            };
+            
+            _orderFileManager.UploadOrderImages(file, "40ffb216-1d67-46b5-937e-0b6039fab2f9", 2.ToString()).GetAwaiter().GetResult();
         }
         [TestMethod]
         public void Download()
         {
-          var result = ImageManager.DownladOrderImages( "40ffb216-1d67-46b5-937e-0b6039fab2f9", 2).GetAwaiter().GetResult();
+          var result = _orderFileManager.DownladOrderImages( "40ffb216-1d67-46b5-937e-0b6039fab2f9", 2.ToString()).GetAwaiter().GetResult();
 
           Assert.AreEqual(result.Length, 1);
         }

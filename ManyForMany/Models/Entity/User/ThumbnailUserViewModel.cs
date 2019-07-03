@@ -6,18 +6,18 @@ using AuthorizationServer.Models;
 
 namespace ManyForMany.ViewModel.User
 {
-    public class UserThumbnailViewModel
+    public class ThumbnailUserViewModel
     {
-        public UserThumbnailViewModel(ApplicationUser user)
+        public ThumbnailUserViewModel(ApplicationUser user)
         {
             Id = user.Id;
-            Name = user.Name;
+            FirstName = user.FirstName();
             Picture = user.Picture;
         }
 
         public string Id { get; private set; }
 
-        public string Name { get; set; }
+        public string FirstName { get; set; }
 
         public string Picture { get; private set; }
     }

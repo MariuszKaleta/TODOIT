@@ -11,7 +11,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Chat
 {
-    public class Chat : IId<int>
+    public class Chat : IId<string>
     {
         public Chat()
         {
@@ -29,7 +29,7 @@ namespace ManyForMany.Models.Entity.Chat
         }
 
         [Key]
-        public int Id { get; private set; }
+        public string Id { get; private set; }
 
         public List<ApplicationUser> Members { get; private set; }
 
@@ -75,13 +75,9 @@ namespace ManyForMany.Models.Entity.Chat
             user.Chats.Remove(chat);
         }
 
-        public static async Task<Chat> Get(this IQueryable<Chat> users, int id, ILogger logger)
+        public static async Task<Chat> Get(this IQueryable<Chat> users, string id, ILogger logger)
         {
             return await users.Get(id, Errors.ChatIsNotExist, logger);
-        }
-        public static Chat Get(this IEnumerable<Chat> users, int id, ILogger logger)
-        {
-            return users.Get(id, Errors.ChatIsNotExist, logger);
         }
     }
 }

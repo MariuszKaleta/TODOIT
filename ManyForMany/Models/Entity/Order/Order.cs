@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AuthorizationServer.Models;
 using ManyForMany.Controller;
-using ManyForMany.Model.Entity.Orders;
 using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
 using ManyForMany.Models.Entity.Order;
@@ -20,28 +19,35 @@ using MvcHelper.Validation.Attributes;
 
 namespace ManyForMany.Model.Entity.Ofert
 {
-    public class Order : IId<int>
+    public class Order : IId<string>
     {
         private Order()
         {
 
         }
 
-        public Order(CreateOrderViewModel model,  ApplicationUser owner, ILogger logger, IQueryable<Skill> dataSkills)
+        public Order(CreateOrderViewModel model,  ApplicationUser owner, IQueryable<Skill> dataSkills)
         {//TODO Add Required Skills
             Title = model.Title;
             Describe = model.Describe;
-            OwnerId = owner.Id;
+            Owner = owner;
             CreateTime = DateTime.Now;
             DeadLine = model.DeadLine;
             Status = OrderStatus.CompleteTeam;
+            
+            RequiredSkills = new List<Skill>
+            {
+                {model.RequiredSkills, dataSkills}
+            };
 
-            RequiredSkills.Add(model.RequiredSkills, dataSkills);
-            GoodIfHave.Add(model.RequiredSkills, dataSkills);
+            GoodIfHave = new List<Skill>
+            {
+                {model.GoodIfHave, dataSkills}
+            };
         }
 
         [Key]
-        public int Id { get; private set; }
+        public string Id { get; private set; }
 
         [Required]
         public string Title { get; set; }
@@ -50,7 +56,7 @@ namespace ManyForMany.Model.Entity.Ofert
         public string Describe { get; set; }
 
         [Required]
-        public string OwnerId { get; private set; }
+        public ApplicationUser Owner { get; private set; }
 
         //public int ProjectChatId { get; set; }
 
@@ -61,7 +67,9 @@ namespace ManyForMany.Model.Entity.Ofert
 
         public OrderStatus Status { get; set; }
 
-        public List<ApplicationUser> InterestedUsers { get; private set; }
+        public List<ApplicationUser> RejectedByUsers { get; private set; } 
+
+        public List<ApplicationUser> InterestedByUsers { get; private set; }
 
         public List<ApplicationUser> ActualTeam { get; private set; }
 
@@ -81,39 +89,39 @@ namespace ManyForMany.Model.Entity.Ofert
 
     public static class OrderExtension
     {
-        public static async Task<Order> Get(this IQueryable<Order> users, int id, ILogger logger)
+        public static async Task<Order> Get(this IQueryable<Order> users, string id, ILogger logger)
         {
             return await users.Get(id, Errors.OrderIsNotExistInList, logger);
         }
-        public static Order Get(this IEnumerable<Order> users, int id, ILogger logger)
-        {
-            return users.Get(id, Errors.OrderIsNotExistInList, logger);
-        }
 
-        public static ShowPublicOrderViewModel ToPublicInformation(this IQueryable<Order> orders, int id, ILogger _logger, ImageManager imageManager)
+        public static ShowPublicOrderViewModel ToPublicInformation(this IQueryable<Order> orders,  string id, ILogger _logger, OrderFileManager orderFileManager)
         {
             return orders
                 .Include(x => x.RequiredSkills)
                 .Include(x => x.GoodIfHave)
                 .Get(id, _logger).GetAwaiter()
-                .GetResult().ToPublicInformation(imageManager);
+                .GetResult().ToPublicInformation(orderFileManager);
         }
-        public static IEnumerable<ShowPublicOrderViewModel> ToPublicInformation(this IQueryable<Order> orders, ImageManager imageManager)
+        public static IQueryable<ShowPublicOrderViewModel> ToPublicInformation(this IQueryable<Order> orders, OrderFileManager orderFileManager)
         {
             return orders
                 .Include(x => x.RequiredSkills)
                 .Include(x => x.GoodIfHave)
-                .Select(x=>x.ToPublicInformation(imageManager));
+                .Select(x=>x.ToPublicInformation(orderFileManager));
         }
 
-        public static ShowPublicOrderViewModel ToPublicInformation(this Order order, ImageManager imageManager)
+        public static ShowPublicOrderViewModel ToPublicInformation(this Order order, OrderFileManager orderFileManager)
         {
-            return new ShowPublicOrderViewModel(order, imageManager);
+            return new ShowPublicOrderViewModel(order, orderFileManager);
         }
 
-        public static async Task<Image[]> Images(this Order order, ImageManager imageManager)
+        public static async Task<File.File[]> Images(this Order order, OrderFileManager orderFileManager)
         {
-            return await imageManager.DownladOrderImages(order.OwnerId, order.Id);
+            return await orderFileManager.DownladOrderImages(order.Owner.Id, order.Id);
+        }
+        public static async Task<File.File[]> Files(this Order order, OrderFileManager orderFileManager)
+        {
+            return await orderFileManager.DownladOrderFiles(order.Owner.Id, order.Id);
         }
 
         public static void Edit(this Order order, OrderViewModel model)
@@ -127,36 +135,23 @@ namespace ManyForMany.Model.Entity.Ofert
             {
                 order.Describe = model.Describe;
             }
+
+            if (order.DeadLine != model.DeadLine)
+            {
+                order.DeadLine = model.DeadLine;
+            }
         }
 
-        public static void AddUserToProject(this Order order, ApplicationUser user)
-        {
-            order.InterestedUsers.Remove(user);
-            user.InterestedOrders.Remove(order);
 
-            order.ActualTeam.Add(user);
-            user.MemberOfOrders.Add(order);
-        }
         public static void RemoveUserFromProject(this Order order, ApplicationUser user)
         {
             order.ActualTeam.Remove(user);
-            user.MemberOfOrders.Remove(order);
         }
 
 
         public static void Remove(this Order order, Context context)
         {
             context.Orders.Remove(order);
-
-            foreach (var user in order.ActualTeam)
-            {
-                user.MemberOfOrders.Remove(order);
-            }
-
-            foreach (var user in order.InterestedUsers)
-            {
-                user.InterestedOrders.Remove(order);
-            }
         }
     }
 }

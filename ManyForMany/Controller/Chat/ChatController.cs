@@ -52,12 +52,13 @@ namespace ManyForMany.Controller.Chat
         }
 
         [MvcHelper.Attributes.HttpGet("{chatId}")]
-        public async Task<Models.Entity.Chat.Chat> Get(int chatId)
+        public async Task<Models.Entity.Chat.Chat> Get(string chatId)
         {
-            var id = UserManager.GetUserId(User);
-            var user = await _context.Users.Include(x => x.Chats).Get(id, _logger);
+            var userId = UserManager.GetUserId(User);
 
-            var chat = user.Chats.Get(chatId, _logger);
+            var chat = await _context.Chats.
+                Where(x=>x.Members.Any(y=>y.Id == userId))
+                .Get(chatId, _logger);
 
             return chat;
         }
@@ -77,7 +78,7 @@ namespace ManyForMany.Controller.Chat
         }
 
         [MvcHelper.Attributes.HttpPost(nameof(AddUsers))]
-        public async Task AddUsers(string[] userId, int chatId)
+        public async Task AddUsers(string[] userId, string chatId)
         {
             var adminTask = _context.Users.Include(x => x.Chats).
                 Get(UserManager.GetUserId(User), _logger);
@@ -98,7 +99,7 @@ namespace ManyForMany.Controller.Chat
         }
 
         [MvcHelper.Attributes.HttpPost(nameof(RemoveUsers))]
-        public async Task RemoveUsers(string[] userId, int chatId)
+        public async Task RemoveUsers(string[] userId, string chatId)
         {
             var adminTask = _context.Users.Include(x => x.Chats).
                 Get(UserManager.GetUserId(User), _logger);
@@ -119,7 +120,7 @@ namespace ManyForMany.Controller.Chat
         }
 
         [MvcHelper.Attributes.HttpGet("{chatId}", nameof(Messages))]
-        public async Task<List<Message>> Messages(int chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
+        public async Task<List<Message>> Messages(string chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
         {
             var user = await UserManager.GetUserAsync(User);
 

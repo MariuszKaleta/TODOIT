@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
+using FileHelper;
+using ManyForMany.ViewModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
 
@@ -14,27 +16,47 @@ namespace ManyForMany.Model.File
 {
     public class File
     {
-        public string Extension { get; set; }
 
-        [Required]
-        public string Data { get; set; }
-
-        public async Task Save(string path)
+        public File(FileViewModel model )
         {
-            var fileCombine = Path.ChangeExtension(path, Extension);
-            await System.IO.File.WriteAllTextAsync(fileCombine, Data);
+            Extension = model.Extension;
+            Data = model.Data;
         }
 
-        public static async Task<T> Load<T>(string path)
-        where T : File, new()
+        protected File()
         {
-            var extension = Path.GetExtension(path);
-            var data = await System.IO.File.ReadAllTextAsync(path);
 
-            return new T()
+        }
+
+        public string FileName => Path.ChangeExtension(Id,Extension);
+
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+
+        public string Extension { get; private set; }
+
+        public string Data { get; set; }
+
+        public async Task Save(string directoryPath)
+        {
+            var fileName = $"{directoryPath}{Path.DirectorySeparatorChar}{Id}";
+
+            var fileNameWithExtension = Path.ChangeExtension(fileName, Extension);
+
+            await System.IO.File.WriteAllTextAsync(fileNameWithExtension, Data);
+        }
+
+        public static async Task<File> Load(string path)
+        {
+            var dataTask = System.IO.File.ReadAllTextAsync(path);
+            var extension = Path.GetExtension(path).Replace(FileConstant.ExtensionSeparator.ToString(), string.Empty);
+            var fileName = Path.GetFileNameWithoutExtension(path);
+
+
+            return new File()
             {
-                Data = data,
-                Extension = extension
+                Id = fileName,
+                Extension = extension,
+                Data = await dataTask
             };
         }
     }

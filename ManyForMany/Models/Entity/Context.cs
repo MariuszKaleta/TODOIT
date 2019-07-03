@@ -31,17 +31,17 @@ namespace AuthorizationServer.Models
 
             var user = builder.Entity<ApplicationUser>();
 
-            user.HasMany(x => x.InterestedOrders);
-            user.HasMany(x => x.MemberOfOrders);
-            user.HasMany(x => x.OwnOrders);
-            user.HasMany(x => x.RejectedOrders);
+            //user.HasMany(x => x.InterestedOrders);
+           // user.HasMany(x => x.MemberOfOrders);
+           user.HasMany(x => x.OpinionsAboutMe);
 
             user.HasMany(x => x.Chats);
 
             var order = builder.Entity<Order>();
 
             order.HasMany(x => x.ActualTeam);
-            order.HasMany(x => x.InterestedUsers);
+            order.HasMany(x => x.InterestedByUsers);
+            order.HasOne(x => x.Owner);
 
             var chat = builder.Entity<Chat>();
 

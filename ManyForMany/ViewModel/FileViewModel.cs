@@ -4,14 +4,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace ManyForMany.ViewModel.Order
+namespace ManyForMany.ViewModel
 {
-    public class DecideViewModel
+    public class FileViewModel
     {
         [Required]
-        public string OrderId { get; set; }
+        public string Data { get; set; }
 
         [Required]
-        public bool Decision { get; set; }
+        public string Extension { get; set; }
     }
 }

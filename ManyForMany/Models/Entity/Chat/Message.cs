@@ -8,7 +8,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Chat
 {
-    public class Message : IId<int>
+    public class Message : IId<string>
     {
         private Message()
         {
@@ -23,7 +23,7 @@ namespace ManyForMany.Models.Entity.Chat
         }
 
         [Key]
-        public int Id { get; private set; }
+        public string Id { get; private set; }
 
         public string AuthorId { get; private set; }
 

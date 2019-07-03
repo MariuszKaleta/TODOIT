@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -192,17 +193,39 @@ namespace AuthorizationServer
                         await roleManager.CreateAsync(new IdentityRole(role));
                     }
                 }
+
+
+                //CreateSkills(context);
             }
+
         }
 
-        private void CreateSkills(Context context)
+
+
+        private async Task CreateSkills(Context context)
         {
             var rows =
                 File.ReadAllLines(@"C:\Users\RWSwiss\source\repos\ManyForMany\ManyForMany\Data\Skills.txt");
 
             var skills = rows.Select(x => new Skill(x)).ToArray();
-            context.Skills.AddRange(skills);
-            context.SaveChanges();
+
+            var errors = new List<Skill>();
+
+            foreach (var skill in skills)
+            {
+                try
+                {
+                    context.Skills.Add(skill);
+                    context.SaveChanges();
+                }
+                catch (Exception e)
+                {
+                    errors.Add(skill);
+                   //var a =  context.Skills.Count();
+                }
+            }
+
+
         }
     }
 }

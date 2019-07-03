@@ -1,19 +1,16 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using AuthorizeTester.Model;
-using Google.Apis.Auth;
+﻿using Google.Apis.Auth;
 using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Models.Configuration;
 using ManyForMany.Models.Entity.Chat;
 using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity.Rate;
 using ManyForMany.ViewModel.User;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MultiLanguage.Exception;
 using MvcHelper.Entity;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace AuthorizationServer.Models
 {
@@ -39,9 +36,9 @@ namespace AuthorizationServer.Models
 
         public string Picture { get; private set; }
 
-        public string Name { get; private set; }
+        public string Name { get; set; }
 
-        public string SurName { get; private set; }
+        public string SurName { get; set; }
 
         #region Skills
 
@@ -55,17 +52,12 @@ namespace AuthorizationServer.Models
 
         #endregion
 
-        #region Order
 
-        public List<Order> InterestedOrders { get; private set; }
+        #region Opininons
+        
+        public List<Opinion> OpinionsAboutMe { get; private set; }
 
-        public List<Order> RejectedOrders { get; private set; }
-
-        public List<Order> OwnOrders { get; private set; }
-
-        public List<Order> MemberOfOrders { get; private set; }
-
-
+        
         #endregion
 
 
@@ -76,6 +68,11 @@ namespace AuthorizationServer.Models
 
     public static class UserExtension
     {
+        public static string FirstName(this ApplicationUser user)
+        {
+            return user.Name.Replace(user.SurName, string.Empty);
+        }
+
         public static void Remove(this ApplicationUser user, Context context)
         {
             context.Users.Remove(user);
@@ -92,50 +89,17 @@ namespace AuthorizationServer.Models
                 }
             }
             */
-            foreach (var order in user.MemberOfOrders)
-            {
-                order.ActualTeam.Remove(user);
-            }
 
-            foreach (var order in user.OwnOrders)
-            {
-                order.Remove(context);
-            }
-        }
 
-        public static IEnumerable<Order> WatchedAndUserOrdersId(this ApplicationUser user)
-        {
-            foreach (var order in user.WatchedOrdersId())
-            {
-                yield return order;
-            }
-
-            foreach (var order in user.OwnOrders)
-            {
-                yield return order;
-            }
-        }
-
-        public static IEnumerable<Order> WatchedOrdersId(this ApplicationUser user)
-        {
-            foreach (var order in user.InterestedOrders)
-            {
-                yield return order;
-            }
-
-            foreach (var order in user.RejectedOrders)
-            {
-                yield return order;
-            }
         }
 
         public static UserInformationViewModel ToUserInformation(this ApplicationUser user)
         {
             return  new UserInformationViewModel(user);
         }
-        public static UserThumbnailViewModel ToUserThumbnail(this ApplicationUser user)
+        public static ThumbnailUserViewModel ToUserThumbnail(this ApplicationUser user)
         {
-            return  new UserThumbnailViewModel(user);
+            return  new ThumbnailUserViewModel(user);
         }
 
         public static async Task<ApplicationUser> Get(this IQueryable<ApplicationUser> users, string id, ILogger logger)
@@ -146,11 +110,6 @@ namespace AuthorizationServer.Models
         public static IQueryable<ApplicationUser> Get<T>(this IQueryable<ApplicationUser> users, IEnumerable<string> id)
         {
             return  users.Get(id);
-        }
-
-        public static ApplicationUser Get(this IEnumerable<ApplicationUser> users, string id, ILogger logger)
-        {
-            return users.Get(id, Errors.UserIsNotExist, logger);
         }
     }
 }

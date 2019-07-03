@@ -7,12 +7,17 @@ using AuthorizationServer.Models;
 using AuthorizeTester.Model;
 using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.Order;
+using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MultiLanguage.Exception;
 using MvcHelper;
+using MvcHelper.Attributes;
+using MvcHelper.Entity;
 using OpenIddict.Validation;
 
 namespace AuthorizationServer.Controllers
@@ -35,7 +40,7 @@ namespace AuthorizationServer.Controllers
         }
 
         [Authorize]
-        [HttpGet(nameof(UserInfo))]
+        [Microsoft.AspNetCore.Mvc.HttpGet(nameof(UserInfo))]
         public async Task<object> UserInfo()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -49,8 +54,39 @@ namespace AuthorizationServer.Controllers
 
 
         //TODO add skill editor and parameter contorller
-        
+        [Authorize]
+        [MvcHelper.Attributes.HttpPut()]
+        public async Task Edit(UserViewModel model)
+        {
+            var user = await _userManager.GetUserAsync(User);
 
+            if (!string.IsNullOrEmpty(model.Name))
+            {
+                user.Name = model.Name;
+            }
+
+            if (!string.IsNullOrEmpty(model.SurName))
+            {
+                user.UserName = model.UserName;
+            }
+
+            if (!string.IsNullOrEmpty(model.UserName))
+            {
+                var userNameInUse = _context.Users.Any(x => x.UserName == model.UserName);
+
+                if (userNameInUse)
+                {
+                    throw new MultiLanguageException(nameof(model.UserName), Errors.UserNameIsBusy);
+                }
+
+                user.UserName = model.UserName;
+            }
+            
+            _context.SaveChanges();
+
+        }
+
+        
         
 
         #region Helpers

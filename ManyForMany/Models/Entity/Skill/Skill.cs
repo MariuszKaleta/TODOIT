@@ -11,7 +11,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Order
 {
-    public class Skill : IId<int>, IName
+    public class Skill : IId<int>
     {
         private Skill()
         {
@@ -26,7 +26,7 @@ namespace ManyForMany.Models.Entity.Order
         [Key]
         public int Id { get; private set; }
 
-
+        [Required]
         public string Name { get; private set; }
     }
 
@@ -35,10 +35,6 @@ namespace ManyForMany.Models.Entity.Order
         public static async Task<Skill> Get(this IQueryable<Skill> users, int id, ILogger logger)
         {
             return await users.Get(id, Errors.SkillIsNotExistInList, logger);
-        }
-        public static Skill Get<T>(this IEnumerable<Skill> users, int id, ILogger<T> logger)
-        {
-            return users.Get(id, Errors.SkillIsNotExistInList, logger);
         }
 
         public static async Task Add(this IList<Skill> skills, int id, IQueryable<Skill> dataSkills, ILogger logger)
@@ -57,7 +53,7 @@ namespace ManyForMany.Models.Entity.Order
         {
             var skillsToAdd = dataSkills.Get(idCollection);
 
-            var commonPart = skills.GetCommonPart(skillsToAdd);
+            var commonPart = skills.AsQueryable().Intersect(skillsToAdd);
 
             if (commonPart.Any())
             {

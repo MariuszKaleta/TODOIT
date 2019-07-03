@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using FileHelper;
-using ManyForMany.Model.Entity.Orders;
 using Microsoft.AspNetCore.Http;
 using GenericHelper;
 
@@ -16,14 +15,13 @@ namespace ManyForMany.Model.File
     {
         #region properties
 
-        public const uint NextIndex = 1;
 
         public static string Content { get; } = Path.GetFullPath(
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, nameof(Content)));
 
         public static string LocalPath(params string[] directories) =>
             Path.Combine(Content,
-                string.Join(FileConstant.PathSeparator,
+                string.Join(Path.DirectorySeparatorChar,
                     directories.Select(RemoveInvalidFileChars)));
 
         public static readonly string[] InvalidFileNameChars =
@@ -43,27 +41,24 @@ namespace ManyForMany.Model.File
 
         #region Method
 
-
         public async Task<bool> UploadFile(File[] files, params string[] directories)
         {
-            var tasks = files.Select(file => UploadFile(file, directories));
+            var directoryPath = LocalPath(directories);
+            Directory.CreateDirectory(directoryPath);
+
+            var tasks = files.Select(file => UploadFile(file, directoryPath));
 
             return (await Task.WhenAll(tasks)).All(x => x);
         }
 
-        public async Task<bool> UploadFile(File file, string directoryPath)
+        private async Task<bool> UploadFile(File file, string directoryPath)
         {
             var isCopied = false;
             //1 check if the file length is greater than 0 bytes 
             if (file.Data.Length > ushort.MinValue)
             {
-                var fileName = string.Empty;
-
-                var extension = file.Extension;
-
-                await file.Save(Path.ChangeExtension(GetAvailableFilename(directoryPath, fileName), extension));
+                await file.Save(directoryPath);
                 isCopied = true;
-
             }
 
             return isCopied;
@@ -77,56 +72,71 @@ namespace ManyForMany.Model.File
             return await UploadFile(file, directoryPath);
         }
 
-        public async Task<T[]> DownloadFiles<T>(params string[] directories)
-            where T : File, new()
+        public async Task<File[]> DownloadFiles(params string[] directories)
         {
             var localPath = LocalPath(directories);
-            return await DownloadFiles<T>(localPath);
+            return await DownloadFiles(localPath);
         }
-        public async Task<T[]> DownloadFiles<T>(string directoryPath)
-        where T : File, new()
+        public async Task<File[]> DownloadFiles(string directoryPath)
         {
-            var files = Directory.GetFiles(directoryPath);
-            var tasks = files.Select(File.Load<T>).ToArray();
-
-            return await Task.WhenAll(tasks);
-        }
-
-        public async Task RemoveFiles(params string[] directories)
-        {
-            Directory.Delete(LocalPath(directories));
-        }
-
-
-        public static string GetAvailableFilename(string path, string filename)
-        {
-
-            var fullPath = Path.Combine(path, filename);
-            if (!System.IO.File.Exists(fullPath) && !string.IsNullOrEmpty(filename)) return fullPath;
-
-            string alternateFilename;
-            var fileNameIndex = NextIndex;
-            do
+            if (Directory.Exists(directoryPath))
             {
-                fileNameIndex += NextIndex;
-                alternateFilename = CreateNumberedFilename(filename, fileNameIndex);
+                var files = Directory.GetFiles(directoryPath);
+                var tasks = files.Select(File.Load).ToArray();
 
-                fullPath = Path.Combine(path, alternateFilename);
-            } while (System.IO.File.Exists(fullPath));
+                return await Task.WhenAll(tasks);
+            }
 
-            return fullPath;
+            return Enumerable.Empty<File>().ToArray();
         }
 
-        private static string CreateNumberedFilename(string filename, uint number)
+        public void RemoveFiles(string[] directories, string[] fileNames)
         {
-            var plainName = System.IO.Path.GetFileNameWithoutExtension(filename);
-            var extension = System.IO.Path.GetExtension(filename);
-            return $"{plainName}{number}{extension}";
+            var directory = LocalPath(directories);
+
+            if (Directory.Exists(directory))
+            {
+                var directoryFiles = Directory.GetFiles(directory);
+
+                foreach (var file in directoryFiles)
+                {
+                    if (fileNames.Any(x => file.Contains(x)))
+                    {
+                        RemoveFile(file);
+                    }
+                }
+            }
+        }
+
+        public void RemoveFile(string fullFileName)
+        {
+            if (System.IO.File.Exists(fullFileName))
+            {
+                System.IO.File.Delete(fullFileName);
+            }
+        }
+
+        public void RemoveFiles(string[] directories, string fileName)
+        {
+            var directory = LocalPath(directories);
+
+            var directoryFiles = Directory.GetFiles(directory);
+
+            foreach (var file in directoryFiles)
+            {
+                if (fileName.Any(x => file.Contains(x)))
+                {
+                    RemoveFile(file);
+                }
+            }
+        }
+
+        private static IEnumerable<uint> GetFileNames(string directoryPath)
+        {
+            return Directory.GetFiles(directoryPath).Select(Path.GetFileNameWithoutExtension)
+                .Select(x => uint.TryParse(x, out var result) ? new uint?(result) : null).Where(x => x.HasValue).Select(x => x.Value);
         }
 
         #endregion
-
-
-
     }
 }

@@ -9,6 +9,7 @@ using ManyForMany.Model.Entity;
 using ManyForMany.Model.Entity.Ofert;
 using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
+using ManyForMany.ViewModel;
 using ManyForMany.ViewModel.Order;
 using ManyForMany.ViewModel.User;
 using Microsoft.AspNetCore.Authorization;
@@ -27,7 +28,7 @@ namespace ManyForMany.Controller.User
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class UserOrderController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public UserOrderController(ILogger<OrderController> logger, Context context, UserManager<ApplicationUser> userManager)
+        public UserOrderController(ILogger<UserOrderController> logger, Context context, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
             _logger = logger;
@@ -37,9 +38,9 @@ namespace ManyForMany.Controller.User
         #region Properties
 
         public UserManager<ApplicationUser> UserManager { get; }
-        private ILogger<OrderController> _logger;
+        private ILogger _logger;
         private readonly Context _context;
-        private readonly ImageManager ImageManager = new ImageManager();
+        private readonly OrderFileManager _orderFileManager = new OrderFileManager();
 
         #endregion
 
@@ -48,81 +49,32 @@ namespace ManyForMany.Controller.User
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(Roles =  CustomRoles.BasicUser)]
+        [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpPost()]
         public async Task Create(CreateOrderViewModel model)
         {
-            var userId = UserManager.GetUserId(User);
+            var user = await UserManager.GetUserAsync(((ControllerBase) this).User);
 
-            var user = await _context.Users
-                //.Include(x => x.Chats)
-                .Include(x => x.OwnOrders)
-                .Get(userId, _logger);
-
-            var order = new Order(model, user,_logger,_context.Skills);
-            /*
-            var chat = new Chat(user)
-            {
-                Name = model.Title
-            };
-            */
-            
-
-           // _context.Chats.Add(chat);
-
-           //order.ProjectChatId = chat.Id;
-
-            //user.Chats.Add(chat);
-
-            if (model.Images != null)
-            {
-                await ImageManager.UploadOrderImages(model.Images, user.Id, order.Id);
-
-                _logger.LogInformation(nameof(ImageManager.UploadOrderImages), model.Images);
-            }
+            var order = new Order(model, user, _context.Skills);
 
             _context.Orders.Add(order);
 
-            user.OwnOrders.Add(order);
-
             _context.SaveChanges();
-        }
 
-        /*
-
-        [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpDelete("{id}")]
-        public async Task Remove(int id)
-        {
-            var userId = UserManager.GetUserId(User);
-
-            var user = await _context.Users
-                    .Include(x => x.OwnOrdersId)
-                    .FirstOrDefaultAsync(x => x.Id == userId)
-                ;
-
-            var order = await _context.Orders
-                .Include(x=>x.InterestedUsersId)
-                
-                .GetIfContain(user.OwnOrdersId, id);
-
-            var interestedUsers = _context.Users.Get(order.InterestedUsersId);
-
-            foreach (var interestedUser in interestedUsers)
+            if (model.Images != null)
             {
-                interestedUser.InterestedOrdersId.Remove(order.Id);
+                await _orderFileManager.UploadOrderImages(model.Images, user.Id, order.Id);
+
+               // _logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), model.Images);
             }
 
-            order.
+            if (model.Files != null)
+            {
+                await _orderFileManager.UploadOrderFiles(model.Images, user.Id, order.Id);
 
-
-            user.OwnOrdersId.Remove(order.Id);
-
-            _context.SaveChanges();
-
-            await ImageManager.RemoveFiles(user.Id, order.Id);
+                //_logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), model.Images);
+            }
         }
-        */
 
         #region Edit
 
@@ -134,15 +86,11 @@ namespace ManyForMany.Controller.User
         /// <returns></returns>
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpPost("{orderId}", nameof(ChangeStatus), "{status}")]
-        public async Task ChangeStatus(int orderId, OrderStatus status)
+        public async Task ChangeStatus(string orderId, OrderStatus status)
         {
-            var userId = UserManager.GetUserId(User);
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
 
-            var user = await _context.Users
-                .Include(x => x.OwnOrders)
-                .Get(userId, _logger);
-
-            var order = user.OwnOrders.Get(orderId, _logger);
+            var order = await _context.Orders.Where(x => x.Owner.Id == userId).Get(orderId, _logger);
 
             order.Status = status;
 
@@ -152,21 +100,16 @@ namespace ManyForMany.Controller.User
         /// <summary>
         /// Edit Order 
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="orderId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPut("{id}")]
-        public async Task Edit(int id, OrderViewModel model)
+        [MvcHelper.Attributes.HttpPut("{orderId}")]
+        public async Task Edit(string orderId, OrderViewModel model)
         {
-            var userId = UserManager.GetUserId(User);
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
 
-            var user = await _context.Users
-                .Include(x => x.OwnOrders)
-                .Get(userId, _logger);
-
-
-            var order = user.OwnOrders.Get(id, _logger);
+            var order = await _context.Orders.Where(x => x.Owner.Id == userId).Get(orderId, _logger);
 
             order.Edit(model);
 
@@ -175,105 +118,261 @@ namespace ManyForMany.Controller.User
 
         #endregion
 
+        #region Photo
+
+
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpGet(nameof(All))]
-        public async Task<ShowPublicOrderViewModel[]> All([FromQuery] int? start, [FromQuery] int? count)
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Photo))]
+        public async Task AddPhoto(string orderId, FileViewModel[] images)
         {
-            var userId = UserManager.GetUserId(User);
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
 
-            var user = await _context.Users
-                .Include(x => x.OwnOrders)
-                .Get(userId, _logger);
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
 
+            if (orderBelongToUser)
+            {
+                await _orderFileManager.UploadOrderImages(images, userId, orderId);
 
-            return user.OwnOrders.TryTake(start, count).Select(x => x.ToPublicInformation(ImageManager)).ToArray();
+                //_logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), images);
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
         }
 
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(Photo))]
+        public async Task RemovePhoto(string orderId, string[] imagesId)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
+
+            if (orderBelongToUser)
+            {
+                _orderFileManager.RemoveOrderImages(userId, orderId, imagesId);
+
+                //_logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), imagesId);
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpGet("{orderId}", nameof(Photo))]
+        public async Task<File[]> Photo(string orderId)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
+
+            if (orderBelongToUser)
+            {
+                return await _orderFileManager.DownladOrderImages(userId, orderId);
+
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+        }
+
+        #endregion
+
+        #region Files
+
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(File))]
+        public async Task AddFile(string orderId, FileViewModel[] files)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
+
+            if (orderBelongToUser)
+            {
+                await _orderFileManager.UploadOrderFiles(files, userId, orderId);
+
+                //_logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), images);
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(File))]
+        public async Task RemoveFile(string orderId, string[] imagesId)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
+
+            if (orderBelongToUser)
+            {
+                _orderFileManager.RemoveOrderFiles(userId, orderId, imagesId);
+
+                //_logger.LogInformation(nameof(_orderFileManager.UploadOrderImages), imagesId);
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpGet("{orderId}", nameof(File))]
+        public async Task<File[]> File(string orderId)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            var orderBelongToUser = _context.Orders.Any(x => x.Owner.Id == userId && x.Id == orderId);
+
+            if (orderBelongToUser)
+            {
+                return await _orderFileManager.DownladOrderFiles(userId, orderId);
+
+            }
+            else
+            {
+                throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Get All my Orders
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpGet()]
+        public ShowPublicOrderViewModel[] All([FromQuery] int? start, [FromQuery] int? count)
+        {
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
+
+            return _context.Orders
+                .Include(x => x.Owner)
+                .Include(x => x.RequiredSkills)
+                .Include(x => x.GoodIfHave)
+                .Where(x => x.Owner.Id == userId)
+                .TryTake(start, count)
+                .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
+        }
 
         #region Users
 
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpGet("{orderId}", nameof(InterstedUsers))]
-        public async Task<UserThumbnailViewModel[]> InterstedUsers(int orderId, [FromQuery] int? start, [FromQuery] int? count)
+        public async Task<ThumbnailUserViewModel[]> InterstedUsers(string orderId, [FromQuery] int? start, [FromQuery] int? count)
         {
-            var userId = UserManager.GetUserId(User);
+            //TODO każdy morze obejżeć kto ogląda w wersji premium
+            var userId = UserManager.GetUserId(((ControllerBase) this).User);
 
-            var user = await _context.Users
-                    .Include(x => x.OwnOrders)
-                        .ThenInclude(x => x.InterestedUsers)
-                    .FirstOrDefaultAsync(x => x.Id == userId)
-                ;
+            var result = _context.Orders.Where(x => x.Id == orderId && x.Owner.Id == userId)
+                .SelectMany(x => x.InterestedByUsers)
+                .TryTake(start, count)
+                .Select(x => x.ToUserThumbnail()).ToArray();
 
-            var order = user.OwnOrders.Get(orderId, _logger);
+            if (!result.Any())
+            {
+                var order = _context.Orders.Any(x => x.Id == orderId && x.Owner.Id == userId);
 
-            return order.InterestedUsers.TryTake(start, count).Select(x => x.ToUserThumbnail()).ToArray();
+                if (!order)
+                {
+                    throw new MultiLanguageException(nameof(orderId), Errors.OrderDoseNotExistOrIsNotBelongToYou);
+                }
+            }
+
+            return result;
         }
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(AddUser), "{addUserId}")]
-        public async Task AddUser(int orderId, string addUserId)
+        [MvcHelper.Attributes.HttpGet("{orderId}", nameof(Team))]
+        public async Task<ThumbnailUserViewModel[]> Team(string orderId)
         {
-            var userId = UserManager.GetUserId(User);
+            var userId = UserManager.GetUserId(((ControllerBase)this).User);
 
-            var ownOrders = _context.Users
-                .Include(x => x.OwnOrders);
-
-            ownOrders.ThenInclude(x => x.ActualTeam);
-            ownOrders.ThenInclude(x => x.InterestedUsers);
-
-            var user = await ownOrders.Get(userId, _logger);
-
-            var order = user.OwnOrders
+            var order = await _context.Orders
+                .Include(x => x.ActualTeam)
+                .Where(x => x.Owner.Id == userId)
                 .Get(orderId, _logger);
 
-            if (order.ActualTeam.Exists(x => x.Id == userId))
+            return order.ActualTeam.Select(x=>x.ToUserThumbnail()).ToArray();
+        }
+
+        [Authorize(Roles = CustomRoles.BasicUser)]
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Team), "{addUserId}")]
+        public async Task User(string orderId, string addUserId)
+        {
+            var userToAddTask = _context.Users.Get(addUserId, _logger);
+
+            var userId = UserManager.GetUserId(((ControllerBase)this).User);
+
+            var order = await _context.Orders
+                .Include(x=>x.ActualTeam)
+                .Include(x=>x.InterestedByUsers)
+                .Where(x => x.Owner.Id == userId)
+                .Get(orderId, _logger);
+
+
+            if (order.ActualTeam.Exists(x => x.Id == addUserId))
             {
                 throw new MultiLanguageException(nameof(userId), Errors.UserIsAlredyAdded);
             }
 
-            var userToAdd = await _context.Users
-                .Include(x => x.MemberOfOrders)
-                .Include(x => x.InterestedOrders)
-                .Get(addUserId, _logger);
-
-            if (!userToAdd.InterestedOrders.Exists(x => x.Id == orderId))
+            if (!order.InterestedByUsers.Exists(x => x.Id == addUserId))
             {
                 throw new MultiLanguageException(nameof(userId), Errors.UserIsNotInterestedOrder);
             }
 
-            order.AddUserToProject(userToAdd);
+            var userToAdd = await userToAddTask;
+
+            order.InterestedByUsers.Remove(userToAdd);
+
+            order.ActualTeam.Add(userToAdd);
 
             _context.SaveChanges();
         }
+        
 
         [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPost("{id}", nameof(RemoveUser), "{removeUserId}")]
-        public async Task RemoveUser(int id, string removeUserId)
+        [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(Team), "{addUserId}")]
+        public async Task RemoveUser(string orderId, string addUserId)
         {
-            var userId = UserManager.GetUserId(User);
+            var userToAddTask = _context.Users.Get(addUserId, _logger);
 
-            var ownOrders = _context.Users
-                .Include(x => x.OwnOrders);
+            var userId = UserManager.GetUserId(((ControllerBase)this).User);
 
-            ownOrders.ThenInclude(x => x.ActualTeam);
-            ownOrders.ThenInclude(x => x.InterestedUsers);
+            var order = await _context.Orders
+                .Include(x => x.ActualTeam)
+                .Include(x => x.InterestedByUsers)
+                .Where(x => x.Owner.Id == userId)
+                .Get(orderId, _logger);
 
-            var user = await ownOrders.Get(userId, _logger);
 
-            var order = user.OwnOrders
-                .Get(id, _logger);
-
-            if (!order.ActualTeam.Exists(x => x.Id == userId))
+            if (!order.ActualTeam.Exists(x => x.Id == addUserId))
             {
                 throw new MultiLanguageException(nameof(userId), Errors.UserIsNotAdded);
             }
 
-            var userToRemove = await _context.Users
-                .Include(x => x.MemberOfOrders)
-                .Include(x => x.InterestedOrders)
-                .Get(removeUserId, _logger);
+            if (order.InterestedByUsers.Exists(x => x.Id == addUserId))
+            {
+                throw new MultiLanguageException(nameof(userId), Errors.UserIsAlredyAdded);
+            }
 
-            order.RemoveUserFromProject(userToRemove);
+            var userToAdd = await userToAddTask;
+
+            order.InterestedByUsers.Add(userToAdd);
+
+            order.ActualTeam.Remove(userToAdd);
 
             _context.SaveChanges();
         }

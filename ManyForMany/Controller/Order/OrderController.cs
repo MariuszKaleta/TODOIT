@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using AuthorizeTester.Model;
-using ManyForMany.Model.Entity;
-using ManyForMany.Model.Entity.Ofert;
-using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity.Rate;
+using ManyForMany.Models.Entity.User;
+using ManyForMany.Models.File;
+using ManyForMany.ViewModel.Opinion;
 using ManyForMany.ViewModel.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,17 +16,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
-using MvcHelper;
-using MvcHelper.Attributes;
 using MvcHelper.Entity;
 
-namespace ManyForMany.Controller
+namespace ManyForMany.Controller.Order
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OrderController : Microsoft.AspNetCore.Mvc.Controller
     {
-
         public OrderController(ILogger<OrderController> logger, Context context, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
@@ -53,7 +51,6 @@ namespace ManyForMany.Controller
             return Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>()
                 .ToDictionary(x => (int)x, x => x.ToString());
         }
-
 
         [Authorize]
         [MvcHelper.Attributes.HttpGet("{orderId}")]
@@ -133,11 +130,70 @@ namespace ManyForMany.Controller
         {
             var user = await UserManager.GetUserAsync(User);
 
-            var tasks = elements.Select(x => Decide(user, x.OrderId, x.Decision));
+            var tasks = elements.Select(x => Decide(user, x.ElementId, x.Decision));
 
              await Task.WhenAll(tasks);
 
             await _context.SaveChangesAsync();
+        }
+
+        #endregion
+
+        #region Opinion
+
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpGet("{orderId}",nameof(Opinion))]
+        public async Task<ShowOpinionViewModel[]> Opinion(string orderId, [FromQuery] int? start, [FromQuery] int? count)
+        {
+            return _context.Opinions
+                .Where(x => x.Order.Id == orderId)
+                .TryTake(start,count)
+                .Select(x=>x.ToShowOpinionViewModel(_context.Orders,_logger))
+                .ToArray();
+        }
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpPost("{orderId}",nameof(Opinion))]
+        public async Task CreateOpinion(string orderId, CreateOpinionViewModel model)
+        {
+            var authorTask = UserManager.GetUserAsync(User);
+
+            var order = await _context.Orders.Get(orderId, _logger);
+
+            var author = await authorTask;
+
+            if (!order.UsersWhichCanComment.Exists(x => x.Id == author.Id))
+            {
+                throw new MultiLanguageException(nameof(author), Errors.YouCantCommentThis);
+            }
+
+            var opinion = new Opinion(author, order, model);
+            order.UsersWhichCanComment.Remove(author);
+
+            _context.Opinions.Add(opinion);
+            _context.SaveChanges();
+        }
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(Opinion))]
+        public async Task RemoveOpinion(string orderId)
+        {
+            var author = await UserManager.GetUserAsync(User);
+
+            var opinion = await _context.Opinions
+                .Include(x=>x.Order)
+                .FirstOrDefaultAsync(x => x.Order.Id == orderId && x.Author == author);
+
+
+            if (opinion == null)
+            {
+                throw new MultiLanguageException(nameof(author), Errors.YouNotCommentThis);
+            }
+
+            opinion.Order.UsersWhichCanComment.Add(author);
+
+            _context.Opinions.Remove(opinion);
+            _context.SaveChanges();
         }
 
         #endregion

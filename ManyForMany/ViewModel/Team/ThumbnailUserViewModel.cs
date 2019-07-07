@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using AuthorizationServer.Models;
-
-namespace ManyForMany.ViewModel.User
+﻿namespace ManyForMany.Models.Entity.User
 {
     public class ThumbnailUserViewModel
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ManyForMany.Model.File;
+using ManyForMany.Models.File;
 using ManyForMany.ViewModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

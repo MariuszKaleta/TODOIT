@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
 using ManyForMany.Models.Configuration;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using MvcHelper.Entity;
 
-namespace ManyForMany.Models.Entity.Order
+namespace ManyForMany.Models.Entity.Skill
 {
     public class Skill : IId<int>
     {

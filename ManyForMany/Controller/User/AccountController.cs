@@ -1,28 +1,23 @@
-﻿using System;
-using System.Linq;
-using System.Security.Claims;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using AspNet.Security.OpenIdConnect.Primitives;
-using AuthorizationServer.Models;
-using AuthorizeTester.Model;
-using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Skill;
+using ManyForMany.Models.Entity.User;
 using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MultiLanguage.Exception;
-using MvcHelper;
-using MvcHelper.Attributes;
 using MvcHelper.Entity;
-using OpenIddict.Validation;
 
-namespace AuthorizationServer.Controllers
+namespace ManyForMany.Controller.User
 {
-    public class AccountController : Controller
+
+    [ApiController]
+    [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
+    public class AccountController : Microsoft.AspNetCore.Mvc.Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -50,6 +45,15 @@ namespace AuthorizationServer.Controllers
                 User = user,
                 Roles = await _userManager.GetRolesAsync(user)
             };
+        }
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpGet]
+        public async Task<UserViewModel> Infromation()
+        {
+            var user = await _userManager.GetUserAsync(User);
+
+            return user.ToViewModel();
         }
 
 
@@ -86,31 +90,55 @@ namespace AuthorizationServer.Controllers
 
         }
 
-        
-        
+        #region Skills
 
-        #region Helpers
-
-        // The following code creates the database and schema if they don't exist.
-        // This is a temporary workaround since deploying database through EF migrations is
-        // not yet supported in this release.
-        // Please see this http://go.microsoft.com/fwlink/?LinkID=615859 for more information on how to do deploy the database
-        // when publishing your application.
-        private static void EnsureDatabaseCreated(Context context)
+        [Authorize]
+        [MvcHelper.Attributes.HttpPost(nameof(Skill))]
+        public async void Add(int[] skillsId)
         {
-            if (!_databaseChecked)
+            var id = _userManager.GetUserId(User);
+
+            var userTask = _context.Users.Include(x => x.Skills).FirstOrDefaultAsync(x => x.Id == id);
+
+            var skills = _context.Skills.Get(skillsId);
+            var user = await userTask;
+
+            foreach (var skill in skills)
             {
-                _databaseChecked = true;
-                context.Database.EnsureCreated();
+                if (user.Skills.Contains(skill))
+                {
+                    throw new MultiLanguageException(nameof(Skill.Id), Errors.SkillIsAlreadyExist);
+                }
+
+                user.Skills.Add(skill);
             }
+
+            _context.SaveChanges();
         }
 
-        private void AddErrors(IdentityResult result)
+        [Authorize]
+        [MvcHelper.Attributes.HttpDelete(nameof(Skill))]
+        public async void Remove(int[] skillsId)
         {
-            foreach (var error in result.Errors)
+            var id = _userManager.GetUserId(User);
+
+            var userTask = _context.Users.Include(x => x.Skills).FirstOrDefaultAsync(x => x.Id == id);
+
+            var skills = _context.Skills.Get(skillsId);
+
+            var user = await userTask;
+
+            foreach (var skill in skills)
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                if (!user.Skills.Contains(skill))
+                {
+                    throw new MultiLanguageException(nameof(Skill.Id), Errors.SkillIsAlreadyExist);
+                }
+
+                user.Skills.Remove(skill);
             }
+
+            _context.SaveChanges();
         }
 
         #endregion

@@ -2,21 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
-using AuthorizationServer.Models;
-using AuthorizeTester.Model;
+using ManyForMany.Controller.Chat;
 using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity.Order;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Skill;
+using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.AspNetCore.Hosting.Internal;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
@@ -24,9 +19,8 @@ using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Validation;
 using Swashbuckle.AspNetCore.Swagger;
-using SignalRChat;
 
-namespace AuthorizationServer
+namespace ManyForMany
 {
 
     public class Startup

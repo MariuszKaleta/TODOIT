@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ManyForMany.Migrations
 {
-    public partial class New : Migration
+    public partial class Recreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -20,6 +20,18 @@ namespace ManyForMany.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MathcedCoWorkerses",
+                columns: table => new
+                {
+                    Id = table.Column<string>(nullable: false),
+                    MatchTime = table.Column<DateTime>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MathcedCoWorkerses", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -201,53 +213,53 @@ namespace ManyForMany.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Chats",
+                name: "Chat",
                 columns: table => new
                 {
                     Id = table.Column<string>(nullable: false),
-                    AdminId = table.Column<string>(nullable: true),
-                    ApplicationUserId = table.Column<string>(nullable: true)
+                    Discriminator = table.Column<string>(nullable: false),
+                    AdminId = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Chats", x => x.Id);
+                    table.PrimaryKey("PK_Chat", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Message",
+                name: "Messages",
                 columns: table => new
                 {
                     Id = table.Column<string>(nullable: false),
-                    AuthorId = table.Column<string>(nullable: true),
-                    Text = table.Column<string>(nullable: true),
-                    CreateTime = table.Column<DateTime>(nullable: false),
-                    ChatId = table.Column<string>(nullable: true)
+                    AuthorId = table.Column<string>(nullable: false),
+                    Text = table.Column<string>(nullable: false),
+                    ChatId = table.Column<string>(nullable: false),
+                    CreateTime = table.Column<DateTime>(nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Message", x => x.Id);
+                    table.PrimaryKey("PK_Messages", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Message_Chats_ChatId",
+                        name: "FK_Messages_Chat_ChatId",
                         column: x => x.ChatId,
-                        principalTable: "Chats",
+                        principalTable: "Chat",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "Opinion",
+                name: "Opinions",
                 columns: table => new
                 {
                     Id = table.Column<string>(nullable: false),
-                    AuthorId = table.Column<string>(nullable: true),
-                    OrderId = table.Column<string>(nullable: true),
                     Text = table.Column<string>(nullable: true),
                     Quality = table.Column<int>(nullable: false),
-                    Salary = table.Column<int>(nullable: false)
+                    Salary = table.Column<int>(nullable: false),
+                    AuthorId = table.Column<string>(nullable: false),
+                    OrderId = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Opinion", x => x.Id);
+                    table.PrimaryKey("PK_Opinions", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -260,11 +272,7 @@ namespace ManyForMany.Migrations
                     OwnerId = table.Column<string>(nullable: false),
                     CreateTime = table.Column<DateTime>(nullable: false),
                     DeadLine = table.Column<DateTime>(nullable: false),
-                    Status = table.Column<int>(nullable: false),
-                    ApplicationUserId = table.Column<string>(nullable: true),
-                    ApplicationUserId1 = table.Column<string>(nullable: true),
-                    ApplicationUserId2 = table.Column<string>(nullable: true),
-                    ApplicationUserId3 = table.Column<string>(nullable: true)
+                    Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -293,17 +301,40 @@ namespace ManyForMany.Migrations
                     Picture = table.Column<string>(nullable: true),
                     Name = table.Column<string>(nullable: true),
                     SurName = table.Column<string>(nullable: true),
+                    ApplicationUserId = table.Column<string>(nullable: true),
+                    ApplicationUserId1 = table.Column<string>(nullable: true),
                     ChatId = table.Column<string>(nullable: true),
+                    MathcedCoWorkersId = table.Column<string>(nullable: true),
                     OrderId = table.Column<string>(nullable: true),
-                    OrderId1 = table.Column<string>(nullable: true)
+                    OrderId1 = table.Column<string>(nullable: true),
+                    OrderId2 = table.Column<string>(nullable: true),
+                    OrderId3 = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetUsers_Chats_ChatId",
+                        name: "FK_AspNetUsers_AspNetUsers_ApplicationUserId",
+                        column: x => x.ApplicationUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_AspNetUsers_ApplicationUserId1",
+                        column: x => x.ApplicationUserId1,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_Chat_ChatId",
                         column: x => x.ChatId,
-                        principalTable: "Chats",
+                        principalTable: "Chat",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_MathcedCoWorkerses_MathcedCoWorkersId",
+                        column: x => x.MathcedCoWorkersId,
+                        principalTable: "MathcedCoWorkerses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -315,6 +346,18 @@ namespace ManyForMany.Migrations
                     table.ForeignKey(
                         name: "FK_AspNetUsers_Orders_OrderId1",
                         column: x => x.OrderId1,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_Orders_OrderId2",
+                        column: x => x.OrderId2,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_Orders_OrderId3",
+                        column: x => x.OrderId3,
                         principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -382,9 +425,24 @@ namespace ManyForMany.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_ApplicationUserId",
+                table: "AspNetUsers",
+                column: "ApplicationUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_ApplicationUserId1",
+                table: "AspNetUsers",
+                column: "ApplicationUserId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_ChatId",
                 table: "AspNetUsers",
                 column: "ChatId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_MathcedCoWorkersId",
+                table: "AspNetUsers",
+                column: "MathcedCoWorkersId");
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
@@ -409,13 +467,23 @@ namespace ManyForMany.Migrations
                 column: "OrderId1");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Chats_ApplicationUserId",
-                table: "Chats",
-                column: "ApplicationUserId");
+                name: "IX_AspNetUsers_OrderId2",
+                table: "AspNetUsers",
+                column: "OrderId2");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Message_ChatId",
-                table: "Message",
+                name: "IX_AspNetUsers_OrderId3",
+                table: "AspNetUsers",
+                column: "OrderId3");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Chat_AdminId",
+                table: "Chat",
+                column: "AdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Messages_ChatId",
+                table: "Messages",
                 column: "ChatId");
 
             migrationBuilder.CreateIndex(
@@ -453,34 +521,14 @@ namespace ManyForMany.Migrations
                 columns: new[] { "ApplicationId", "Status", "Subject", "Type" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Opinion_AuthorId",
-                table: "Opinion",
+                name: "IX_Opinions_AuthorId",
+                table: "Opinions",
                 column: "AuthorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Opinion_OrderId",
-                table: "Opinion",
+                name: "IX_Opinions_OrderId",
+                table: "Opinions",
                 column: "OrderId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_ApplicationUserId",
-                table: "Orders",
-                column: "ApplicationUserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_ApplicationUserId1",
-                table: "Orders",
-                column: "ApplicationUserId1");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_ApplicationUserId2",
-                table: "Orders",
-                column: "ApplicationUserId2");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_ApplicationUserId3",
-                table: "Orders",
-                column: "ApplicationUserId3");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_OwnerId",
@@ -535,58 +583,26 @@ namespace ManyForMany.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Chats_AspNetUsers_ApplicationUserId",
-                table: "Chats",
-                column: "ApplicationUserId",
+                name: "FK_Chat_AspNetUsers_AdminId",
+                table: "Chat",
+                column: "AdminId",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Opinion_AspNetUsers_AuthorId",
-                table: "Opinion",
+                name: "FK_Opinions_AspNetUsers_AuthorId",
+                table: "Opinions",
                 column: "AuthorId",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_Opinion_Orders_OrderId",
-                table: "Opinion",
+                name: "FK_Opinions_Orders_OrderId",
+                table: "Opinions",
                 column: "OrderId",
                 principalTable: "Orders",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId",
-                table: "Orders",
-                column: "ApplicationUserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId1",
-                table: "Orders",
-                column: "ApplicationUserId1",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId2",
-                table: "Orders",
-                column: "ApplicationUserId2",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId3",
-                table: "Orders",
-                column: "ApplicationUserId3",
-                principalTable: "AspNetUsers",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
@@ -602,24 +618,8 @@ namespace ManyForMany.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Chats_AspNetUsers_ApplicationUserId",
-                table: "Chats");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId",
-                table: "Orders");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId1",
-                table: "Orders");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId2",
-                table: "Orders");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_Orders_AspNetUsers_ApplicationUserId3",
-                table: "Orders");
+                name: "FK_Chat_AspNetUsers_AdminId",
+                table: "Chat");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_Orders_AspNetUsers_OwnerId",
@@ -641,7 +641,7 @@ namespace ManyForMany.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Message");
+                name: "Messages");
 
             migrationBuilder.DropTable(
                 name: "OpenIddictScopes");
@@ -650,7 +650,7 @@ namespace ManyForMany.Migrations
                 name: "OpenIddictTokens");
 
             migrationBuilder.DropTable(
-                name: "Opinion");
+                name: "Opinions");
 
             migrationBuilder.DropTable(
                 name: "Skills");
@@ -668,7 +668,10 @@ namespace ManyForMany.Migrations
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "Chats");
+                name: "Chat");
+
+            migrationBuilder.DropTable(
+                name: "MathcedCoWorkerses");
 
             migrationBuilder.DropTable(
                 name: "Orders");

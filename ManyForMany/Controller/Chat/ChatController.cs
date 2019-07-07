@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity;
 using ManyForMany.Models.Entity.Chat;
+using ManyForMany.Models.Entity.User;
 using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -39,58 +39,76 @@ namespace ManyForMany.Controller.Chat
 
         #endregion
 
-        #region Get
-
-
-        [MvcHelper.Attributes.HttpGet()]
-        public async Task<List<Models.Entity.Chat.Chat>> GetAll()
-        {
-            var id = UserManager.GetUserId(User);
-            var user = await _context.Users.Include(x => x.Chats).Get(id, _logger);
-
-            return user.Chats;
-        }
-
-        [MvcHelper.Attributes.HttpGet("{chatId}")]
-        public async Task<Models.Entity.Chat.Chat> Get(string chatId)
+        [MvcHelper.Attributes.HttpGet("{chatId}", nameof(Messages))]
+        public async Task<Message[]> Messages(string chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
         {
             var userId = UserManager.GetUserId(User);
 
-            var chat = await _context.Chats.
-                Where(x=>x.Members.Any(y=>y.Id == userId))
-                .Get(chatId, _logger);
 
-            return chat;
+            return _context.Messages
+                .Where(x => x.Chat.Id == chatId && x.Chat.Members.Any(y => y.Id == userId))
+                .Filter(y => y.Text, searchText, true)
+                .TryTake(start, count)
+                .ToArray();
+        }
+
+        #region Group
+
+
+        #region Get
+
+        [MvcHelper.Attributes.HttpGet(nameof(Group))]
+        public async Task<Models.Entity.Chat.TeamChat[]> Group([FromQuery] int? start, [FromQuery] int? count)
+        {
+            var id = UserManager.GetUserId(User);
+
+            return _context.TeamChats
+                .Where(x => x.Members.Any(y => y.Id == id))
+                .TryTake(start, count).ToArray();
+        }
+
+        [MvcHelper.Attributes.HttpGet(nameof(Group), "{chatId}")]
+        public async Task<Models.Entity.Chat.TeamChat> Get(string chatId)
+        {
+
+            var userId = UserManager.GetUserId(User);
+
+            return await _context.TeamChats
+                .Where(x => x.Members.Any(y => y.Id == userId))
+                .Get(chatId, _logger);
         }
 
         #endregion
 
-        [MvcHelper.Attributes.HttpPost(nameof(Create))]
+        [MvcHelper.Attributes.HttpPost(nameof(Group), nameof(Create))]
         public async Task Create(CreateChatViewModel model)
         {
             var id = UserManager.GetUserId(User);
 
-            var admin = await _context.Users.Include(x => x.Chats).Get(id, _logger);
+            var admin = await _context.Users.Get(id, _logger);
 
-            var chat = new Models.Entity.Chat.Chat(admin, _context, model);
+            var chat = new Models.Entity.Chat.TeamChat(admin, _context, model);
+
+            _context.TeamChats.Add(chat);
 
             _context.SaveChanges();
         }
 
-        [MvcHelper.Attributes.HttpPost(nameof(AddUsers))]
-        public async Task AddUsers(string[] userId, string chatId)
+        [MvcHelper.Attributes.HttpPost(nameof(Group), nameof(Users))]
+        public async Task Users(string[] userId, string chatId)
         {
-            var adminTask = _context.Users.Include(x => x.Chats).
-                Get(UserManager.GetUserId(User), _logger);
+            var adminId = UserManager.GetUserId(User);
 
-            var chat = await _context.Chats.Get(chatId, _logger);
-            var admin = await adminTask;
+            var chatTask = _context.TeamChats
+                .Where(x => x.Admin.Id == adminId).Get(chatId, _logger);
+
             var users = _context.Users.Get<ApplicationUser>(userId);
 
+            var chat = await chatTask;
 
-            if (chat.AdminId != admin.Id)
+            if (chat == null)
             {
-                throw new MultiLanguageException(chat.AdminId, Errors.ThisIsNotYourChat);
+                throw new MultiLanguageException(adminId, Errors.ThisIsNotYourChat);
             }
 
             chat.Add(users);
@@ -98,20 +116,20 @@ namespace ManyForMany.Controller.Chat
             _context.SaveChanges();
         }
 
-        [MvcHelper.Attributes.HttpPost(nameof(RemoveUsers))]
+        [MvcHelper.Attributes.HttpDelete(nameof(Group), nameof(Users))]
         public async Task RemoveUsers(string[] userId, string chatId)
         {
-            var adminTask = _context.Users.Include(x => x.Chats).
-                Get(UserManager.GetUserId(User), _logger);
+            var adminId = UserManager.GetUserId(User);
 
-            var chat = await _context.Chats.Get(chatId, _logger);
-            var admin = await adminTask;
+            var chatTask = _context.TeamChats.Where(x => x.Admin.Id == adminId).Get(chatId, _logger);
+
             var users = _context.Users.Get<ApplicationUser>(userId);
 
+            var chat = await chatTask;
 
-            if (chat.AdminId != admin.Id)
+            if (chat == null)
             {
-                throw new MultiLanguageException(chat.AdminId, Errors.ThisIsNotYourChat);
+                throw new MultiLanguageException(adminId, Errors.ThisIsNotYourChat);
             }
 
             chat.Remove(users);
@@ -119,28 +137,8 @@ namespace ManyForMany.Controller.Chat
             _context.SaveChanges();
         }
 
-        [MvcHelper.Attributes.HttpGet("{chatId}", nameof(Messages))]
-        public async Task<List<Message>> Messages(string chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
-        {
-            var user = await UserManager.GetUserAsync(User);
+        #endregion
 
-            var chat = _context.Chats
-                .Include(x => x.Members)
-                .Where(x => x.Members.AsQueryable().Contains(user))
-                .Include(y => y
-                    .Messages.AsQueryable()
-                    .Filter(z => z.Text, searchText, true)
-                    .TryTake(start, count))
-                .FirstOrDefault(x => x.Id == chatId);
-                
-            if (chat == null)
-            {
-                throw new MultiLanguageException(nameof(chatId), Errors.ThisIsNotYourChat);
-            }
-
-            return chat.Messages;
-
-        }
 
         #region Helper
 

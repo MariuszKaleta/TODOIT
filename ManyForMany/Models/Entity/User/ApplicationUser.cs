@@ -1,18 +1,14 @@
-﻿using Google.Apis.Auth;
-using ManyForMany.Model.Entity.Ofert;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity.Chat;
-using ManyForMany.Models.Entity.Order;
-using ManyForMany.Models.Entity.Rate;
-using ManyForMany.ViewModel.User;
+using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using MvcHelper.Entity;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace AuthorizationServer.Models
+namespace ManyForMany.Models.Entity.User
 {
     // Add profile data for application users by adding properties to the ApplicationUser class
     public class ApplicationUser : IdentityUser, IId<string>
@@ -32,6 +28,8 @@ namespace AuthorizationServer.Models
             SurName = model.FamilyName;
         }
 
+
+
         #region properties
 
         public string Picture { get; private set; }
@@ -42,27 +40,20 @@ namespace AuthorizationServer.Models
 
         #region Skills
 
-        public List<Skill> Skills { get; private set; }
+        //TODO wywlic to z sta i zrobić to biernie w skilach
+        public List<Skill.Skill> Skills { get; private set; }
 
         #endregion
 
         #region Team
 
-        public List<Chat> Chats { get; private set; }
+        public List<ApplicationUser> InterestedByOtherUsers { get; private set; }
+
+        public List<ApplicationUser> RejectedByOtherUsers { get; private set; }
 
         #endregion
-
-
-        #region Opininons
-        
-        public List<Opinion> OpinionsAboutMe { get; private set; }
-
         
         #endregion
-
-
-        #endregion
-
     }
 
 
@@ -73,23 +64,14 @@ namespace AuthorizationServer.Models
             return user.Name.Replace(user.SurName, string.Empty);
         }
 
-        public static void Remove(this ApplicationUser user, Context context)
+        public static UserViewModel ToViewModel(this ApplicationUser user)
         {
-            context.Users.Remove(user);
-            /*
-            foreach (var chat in user.Chats)
+            return new UserViewModel()
             {
-                if (chat.AdminId == user.Id)
-                {
-                    chat.AdminId = chat.Members.FirstOrDefault()?.Id;
-                }
-                else
-                {
-                    chat.Members.Remove(user);
-                }
-            }
-            */
-
+                Name =  user.Name,
+                SurName =  user.SurName,
+                UserName =  user.UserName
+            };
 
         }
 

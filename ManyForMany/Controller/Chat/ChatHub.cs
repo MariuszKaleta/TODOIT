@@ -2,25 +2,22 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web;
-using AuthorizationServer.Models;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity;
 using ManyForMany.Models.Entity.Chat;
+using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using Newtonsoft.Json;
-using OpenIddict.Abstractions;
 using OpenIddict.Validation;
 using IClientProxy = Microsoft.AspNetCore.SignalR.IClientProxy;
 
-namespace SignalRChat
+namespace ManyForMany.Controller.Chat
 {
     [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
     public class ChatHub : Hub
@@ -29,8 +26,8 @@ namespace SignalRChat
         private readonly Context _context;
         private readonly Logger<ChatHub> _logger;
 
-        private ConcurrentDictionary<ApplicationUser, (Chat chat, IClientProxy client)> ActualUserChatToGroupName =
-            new ConcurrentDictionary<ApplicationUser, (Chat chat, IClientProxy client)>();
+        private ConcurrentDictionary<ApplicationUser, (Models.Entity.Chat.Chat chat, IClientProxy client)> ActualUserChatToGroupName =
+            new ConcurrentDictionary<ApplicationUser, (Models.Entity.Chat.Chat chat, IClientProxy client)>();
 
         public ChatHub(UserManager<ApplicationUser> userManager, Context context, Logger<ChatHub> logger)
         {
@@ -50,9 +47,7 @@ namespace SignalRChat
 
             var user = await _userManager.GetUserAsync(Context.User);
 
-            var chat = _context.Users
-                .Include(x => x.Chats)
-                .SelectMany(x => x.Chats)
+            var chat = _context.TeamChats
                 .FirstOrDefault(x => x.Id == chatId && x.Members.Any(y => y.Id == user.Id));
 
             //TODO tylko w jednej grupie naraz można być przy connec
@@ -71,18 +66,18 @@ namespace SignalRChat
         {
             var user = await _userManager.GetUserAsync(Context.User);
 
-            var message = new Message(user, text);
-
-            var json = JsonConvert.SerializeObject(message);
-
             if (!ActualUserChatToGroupName.TryGetValue(user, out var value))
             {
                 throw new MultiLanguageException(nameof(user), Errors.YouMustLog);
             }
 
-            var task = value.client.SendAsync(json);
+            var message = new Message(user, value.chat, text);
 
-            value.chat.Messages.Add(message);
+            _context.Messages.Add(message);
+
+            var json = JsonConvert.SerializeObject(message);
+
+            var task = value.client.SendAsync(json);
 
             await task;
         }

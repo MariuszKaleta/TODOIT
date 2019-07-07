@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using FileHelper;
-using Microsoft.AspNetCore.Http;
-using GenericHelper;
 
-namespace ManyForMany.Model.File
+namespace ManyForMany.Models.File
 {
     public class FileManager
     {

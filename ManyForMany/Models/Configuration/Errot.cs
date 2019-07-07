@@ -40,6 +40,10 @@ namespace ManyForMany.Models.Configuration
 
         public const string YouMustLog = "You Must log";
 
+        public const string YouCantCommentThis = "You Cant comment this";
+        public const string YouNotCommentThis = "You Not comment this";
 
+        public const string YouCantAddToTeamYourself = "You Cant Add To Team Yourself";
+        public const string MatchAlredyExist = "Match Alredy Exist";
     }
 }

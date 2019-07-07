@@ -7,8 +7,8 @@ namespace ManyForMany.ViewModel.Order
 {
     public class ThumbnailOrderViewModel
     {
-        public int OrderId { get; set;}
+        public string OrderId { get; set;}
 
-        public string Name { get; set; }
+        public string Title { get; set; }
     }
 }

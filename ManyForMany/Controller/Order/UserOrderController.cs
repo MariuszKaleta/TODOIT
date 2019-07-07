@@ -1,27 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using AuthorizeTester.Model;
-using ManyForMany.Model.Entity;
-using ManyForMany.Model.Entity.Ofert;
-using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity;
+using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity.User;
+using ManyForMany.Models.File;
 using ManyForMany.ViewModel;
 using ManyForMany.ViewModel.Order;
-using ManyForMany.ViewModel.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
-using MvcHelper;
 using MvcHelper.Entity;
 
-namespace ManyForMany.Controller.User
+namespace ManyForMany.Controller.Order
 {
     [ApiController]
     [Authorize]
@@ -55,7 +49,7 @@ namespace ManyForMany.Controller.User
         {
             var user = await UserManager.GetUserAsync(((ControllerBase) this).User);
 
-            var order = new Order(model, user, _context.Skills);
+            var order = new Models.Entity.Order.Order(model, user, _context.Skills);
 
             _context.Orders.Add(order);
 
@@ -267,6 +261,15 @@ namespace ManyForMany.Controller.User
                 .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
         }
 
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpGet("{userId}", nameof(Models.Entity.Order.Order))]
+        public async Task<ShowPublicOrderViewModel[]> Orders(string userId, [FromQuery] int? start, [FromQuery] int? count)
+        {
+           return _context.Orders.Where(x => x.Owner.Id == userId)
+               .TryTake(start, count)
+               .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
+        }
+
         #region Users
 
         [Authorize(Roles = CustomRoles.BasicUser)]
@@ -338,6 +341,7 @@ namespace ManyForMany.Controller.User
             order.InterestedByUsers.Remove(userToAdd);
 
             order.ActualTeam.Add(userToAdd);
+            order.UsersWhichCanComment.Add(userToAdd);
 
             _context.SaveChanges();
         }

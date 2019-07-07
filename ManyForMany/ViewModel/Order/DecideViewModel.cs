@@ -9,7 +9,7 @@ namespace ManyForMany.ViewModel.Order
     public class DecideViewModel
     {
         [Required]
-        public string OrderId { get; set; }
+        public string ElementId { get; set; }
 
         [Required]
         public bool Decision { get; set; }

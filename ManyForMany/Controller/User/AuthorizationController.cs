@@ -9,14 +9,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Extensions;
 using AspNet.Security.OpenIdConnect.Primitives;
-using AuthorizationServer.Models;
-using AuthorizeTester.Model;
 using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -27,9 +24,9 @@ using OpenIddict.Mvc.Internal;
 using OpenIddict.Server;
 using AuthenticationProperties = Microsoft.AspNetCore.Authentication.AuthenticationProperties;
 
-namespace AuthorizationServer.Controllers
+namespace ManyForMany.Controller.User
 {
-    public class AuthorizationController : Controller
+    public class AuthorizationController : Microsoft.AspNetCore.Mvc.Controller
     {
         private readonly IOptions<IdentityOptions> _identityOptions;
         private readonly SignInManager<ApplicationUser> _signInManager;

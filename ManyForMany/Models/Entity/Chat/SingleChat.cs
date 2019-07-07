@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using ManyForMany.Models.Configuration;
@@ -12,17 +11,17 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Chat
 {
-    public abstract class Chat : IId<string>
+    public class SingleChat : Chat
     {
-        protected Chat()
+
+        private SingleChat()
         {
 
         }
 
-        [Key]
-        public string Id { get; private set; }
-
-
-        public List<ApplicationUser> Members { get; protected set; }
+        public SingleChat(ApplicationUser member1, ApplicationUser member2): base()
+        {
+            Members = new List<ApplicationUser> {member1, member2};
+        }
     }
 }

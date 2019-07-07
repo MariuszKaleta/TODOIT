@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
+﻿using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using FileHelper;
-using ManyForMany.Model.Entity.Ofert;
+using ManyForMany.Models.Entity.Order;
 using ManyForMany.ViewModel;
 using Microsoft.AspNetCore.Http;
 
-namespace ManyForMany.Model.File
+namespace ManyForMany.Models.File
 {
     public class OrderFileManager
     {

@@ -3,18 +3,16 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using ManyForMany.Model.Entity.Ofert;
-using ManyForMany.Model.File;
 using ManyForMany.Models.Entity.Order;
-using ManyForMany.ViewModel.User;
-using MultiLanguage.Validation.Attributes;
+using ManyForMany.Models.Entity.Skill;
+using ManyForMany.Models.Entity.User;
+using ManyForMany.Models.File;
 
 namespace ManyForMany.ViewModel.Order
 {
     public class ShowPublicOrderViewModel : OrderViewModel
     {
-        public ShowPublicOrderViewModel(Model.Entity.Ofert.Order order, OrderFileManager orderFileManager)
+        public ShowPublicOrderViewModel(Models.Entity.Order.Order order, OrderFileManager orderFileManager)
         {
             Author = order.Owner.ToUserThumbnail();
             Id = order.Id;

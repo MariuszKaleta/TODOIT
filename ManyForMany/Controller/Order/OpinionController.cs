@@ -4,8 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using ManyForMany.Models.Configuration;
 using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Skill;
+using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity.Rate;
 using ManyForMany.Models.Entity.User;
+using ManyForMany.Models.File;
+using ManyForMany.ViewModel.Opinion;
 using ManyForMany.ViewModel.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -13,40 +16,35 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
-using MvcHelper;
 using MvcHelper.Attributes;
 using MvcHelper.Entity;
 
-namespace ManyForMany.Controller
+namespace ManyForMany.Controller.Order
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
-    public class SkillController : Microsoft.AspNetCore.Mvc.Controller
+    public class OpinionController : Microsoft.AspNetCore.Mvc.Controller
     {
-
-        public SkillController(ILogger<SkillController> logger, Context context, UserManager<ApplicationUser> userManager)
+        public OpinionController(ILogger<OpinionController> logger, Context context, UserManager<ApplicationUser> userManager)
         {
-            _userManager = userManager;
+            UserManager = userManager;
             _logger = logger;
             _context = context;
         }
 
         #region Properties
 
-        public UserManager<ApplicationUser> _userManager;
-        private ILogger<SkillController> _logger;
+        public UserManager<ApplicationUser> UserManager { get; }
+        private ILogger _logger;
         private readonly Context _context;
+        private OrderFileManager _orderFileManager = new OrderFileManager();
 
         #endregion
 
-        #region Get
-
-        [MvcHelper.Attributes.HttpGet()]
-        public Skill[] Find([FromQuery] string text, [FromQuery] int? start, [FromQuery] int? count)
+        [MvcHelper.Attributes.HttpGet(nameof(Rates))]
+        public Dictionary<string, int> Rates()
         {
-            return _context.Skills.Filter(x=>x.Name, text, true).TryTake(start, count).ToArray();
+            return Enum.GetValues(typeof(Rate)).Cast<Rate>().ToDictionary(x => x.ToString(), x => (int) x);
         }
-
-        #endregion
     }
 }

@@ -3,21 +3,16 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using AuthorizationServer.Models;
-using ManyForMany.Controller;
-using ManyForMany.Model.File;
 using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity.Order;
+using ManyForMany.Models.Entity.Skill;
+using ManyForMany.Models.Entity.User;
+using ManyForMany.Models.File;
 using ManyForMany.ViewModel.Order;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MultiLanguage.Exception;
-using MultiLanguage.Validation.Attributes;
-using MvcHelper;
 using MvcHelper.Entity;
-using MvcHelper.Validation.Attributes;
 
-namespace ManyForMany.Model.Entity.Ofert
+namespace ManyForMany.Models.Entity.Order
 {
     public class Order : IId<string>
     {
@@ -26,7 +21,7 @@ namespace ManyForMany.Model.Entity.Ofert
 
         }
 
-        public Order(CreateOrderViewModel model,  ApplicationUser owner, IQueryable<Skill> dataSkills)
+        public Order(CreateOrderViewModel model,  ApplicationUser owner, IQueryable<Skill.Skill> dataSkills)
         {//TODO Add Required Skills
             Title = model.Title;
             Describe = model.Describe;
@@ -35,12 +30,12 @@ namespace ManyForMany.Model.Entity.Ofert
             DeadLine = model.DeadLine;
             Status = OrderStatus.CompleteTeam;
             
-            RequiredSkills = new List<Skill>
+            RequiredSkills = new List<Skill.Skill>
             {
                 {model.RequiredSkills, dataSkills}
             };
 
-            GoodIfHave = new List<Skill>
+            GoodIfHave = new List<Skill.Skill>
             {
                 {model.GoodIfHave, dataSkills}
             };
@@ -73,9 +68,11 @@ namespace ManyForMany.Model.Entity.Ofert
 
         public List<ApplicationUser> ActualTeam { get; private set; }
 
-        public List<Skill> RequiredSkills { get; private set; }
+        public List<Skill.Skill> RequiredSkills { get; private set; }
 
-        public List<Skill> GoodIfHave { get; private set; }
+        public List<Skill.Skill> GoodIfHave { get; private set; }
+
+        public List<ApplicationUser> UsersWhichCanComment { get; private set; }
     }
 
     public enum OrderStatus
@@ -113,6 +110,14 @@ namespace ManyForMany.Model.Entity.Ofert
         public static ShowPublicOrderViewModel ToPublicInformation(this Order order, OrderFileManager orderFileManager)
         {
             return new ShowPublicOrderViewModel(order, orderFileManager);
+        }
+        public static ThumbnailOrderViewModel ToThumbnailInformation(this Order order)
+        {
+            return new ThumbnailOrderViewModel()
+            {
+                Title =  order.Title,
+                OrderId = order.Id
+            };
         }
 
         public static async Task<File.File[]> Images(this Order order, OrderFileManager orderFileManager)

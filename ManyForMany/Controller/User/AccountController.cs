@@ -4,6 +4,7 @@ using ManyForMany.Models.Configuration;
 using ManyForMany.Models.Entity;
 using ManyForMany.Models.Entity.Skill;
 using ManyForMany.Models.Entity.User;
+using ManyForMany.ViewModel.Categories;
 using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -100,7 +101,7 @@ namespace ManyForMany.Controller.User
 
             var userTask = _context.Users.Include(x => x.Skills).FirstOrDefaultAsync(x => x.Id == id);
 
-            var skills = _context.Skills.Get(skillsId);
+            var skills = _context.Skills.Get(x=>x.Id , skillsId);
             var user = await userTask;
 
             foreach (var skill in skills)
@@ -123,8 +124,8 @@ namespace ManyForMany.Controller.User
             var id = _userManager.GetUserId(User);
 
             var userTask = _context.Users.Include(x => x.Skills).FirstOrDefaultAsync(x => x.Id == id);
-
-            var skills = _context.Skills.Get(skillsId);
+            
+            var skills = _context.Skills.Get(x=>x.Id, skillsId);
 
             var user = await userTask;
 
@@ -140,6 +141,71 @@ namespace ManyForMany.Controller.User
 
             _context.SaveChanges();
         }
+
+        #endregion
+
+        #region Categories
+
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpGet(nameof(Categories))]
+        public ThumbnailCategoryViewModel[] Categories()
+        {
+            var userId = _userManager.GetUserId(User);
+
+            return _context.Users.Include(x => x.LikesCategories).Get(userId).Result.LikesCategories
+                .Select(x => x.ToThumbnail()).ToArray();
+        }
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpPost(nameof(LikedCategories))]
+        public async void LikedCategories(int[] skillsId)
+        {
+            var id = _userManager.GetUserId(User);
+
+            var userTask = _context.Users.Include(x => x.LikesCategories).FirstOrDefaultAsync(x => x.Id == id);
+
+            var categories = _context.Categories.Get(x => x.Id, skillsId);
+            var user = await userTask;
+
+            foreach (var likedCategory in categories)
+            {
+                if (user.LikesCategories.Contains(likedCategory))
+                {
+                    throw new MultiLanguageException(nameof(Skill.Id), Errors.SkillIsAlreadyExist);
+                }
+
+                user.LikesCategories.Add(likedCategory);
+            }
+
+            _context.SaveChanges();
+        }
+
+        [Authorize]
+        [MvcHelper.Attributes.HttpDelete(nameof(Skill))]
+        public async void RemoveSkills(int[] categoryId)
+        {
+            var id = _userManager.GetUserId(User);
+
+            var userTask = _context.Users.Include(x => x.LikesCategories).FirstOrDefaultAsync(x => x.Id == id);
+
+            var skills = _context.Categories.Get(x => x.Id, categoryId);
+
+            var user = await userTask;
+
+            foreach (var skill in skills)
+            {
+                if (!user.LikesCategories.Contains(skill))
+                {
+                    throw new MultiLanguageException(nameof(Skill.Id), Errors.SkillIsAlreadyExist);
+                }
+
+                user.LikesCategories.Remove(skill);
+            }
+
+            _context.SaveChanges();
+        }
+
 
         #endregion
     }

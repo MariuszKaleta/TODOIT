@@ -40,7 +40,7 @@ namespace ManyForMany.Models.File
         public static async Task<File> Load(string path)
         {
             var dataTask = System.IO.File.ReadAllTextAsync(path);
-            var extension = Path.GetExtension(path).Replace(FileConstant.ExtensionSeparator.ToString(), string.Empty);
+            var extension = Path.GetExtension(path).Replace(".", string.Empty);
             var fileName = Path.GetFileNameWithoutExtension(path);
 
 

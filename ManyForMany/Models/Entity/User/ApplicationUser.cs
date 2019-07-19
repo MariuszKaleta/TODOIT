@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Google.Apis.Auth;
 using ManyForMany.Models.Configuration;
+using ManyForMany.Models.Entity.Skill;
 using ManyForMany.ViewModel.Team;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ using MvcHelper.Entity;
 namespace ManyForMany.Models.Entity.User
 {
     // Add profile data for application users by adding properties to the ApplicationUser class
-    public class ApplicationUser : IdentityUser, IId<string>
+    public class ApplicationUser : IdentityUser
     {
         private ApplicationUser()
         {
@@ -42,6 +43,8 @@ namespace ManyForMany.Models.Entity.User
 
         //TODO wywlic to z sta i zrobić to biernie w skilach
         public List<Skill.Skill> Skills { get; private set; }
+
+        public List<Category> LikesCategories { get; private set; }
 
         #endregion
 
@@ -84,14 +87,14 @@ namespace ManyForMany.Models.Entity.User
             return  new ThumbnailUserViewModel(user);
         }
 
-        public static async Task<ApplicationUser> Get(this IQueryable<ApplicationUser> users, string id, ILogger logger)
+        public static async Task<ApplicationUser> Get(this IQueryable<ApplicationUser> users, string id)
         {
-            return await users.Get(id, Errors.UserIsNotExist, logger);
+            return users.Get(x=>x.Id, id, Errors.UserIsNotExist);
         }
 
-        public static IQueryable<ApplicationUser> Get<T>(this IQueryable<ApplicationUser> users, IEnumerable<string> id)
+        public static IQueryable<ApplicationUser> Get(this IQueryable<ApplicationUser> users, IEnumerable<string> id)
         {
-            return  users.Get(id);
+            return users.Get(x => x.Id, id);
         }
     }
 }

@@ -109,6 +109,27 @@ namespace ManyForMany.Migrations
                     b.ToTable("Opinions");
                 });
 
+            modelBuilder.Entity("ManyForMany.Models.Entity.Skill.Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("ApplicationUserId");
+
+                    b.Property<string>("Name");
+
+                    b.Property<string>("OrderId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("ManyForMany.Models.Entity.Skill.Skill", b =>
                 {
                     b.Property<int>("Id")
@@ -541,6 +562,17 @@ namespace ManyForMany.Migrations
 
                     b.HasOne("ManyForMany.Models.Entity.Order.Order", "Order")
                         .WithMany()
+                        .HasForeignKey("OrderId");
+                });
+
+            modelBuilder.Entity("ManyForMany.Models.Entity.Skill.Category", b =>
+                {
+                    b.HasOne("ManyForMany.Models.Entity.User.ApplicationUser")
+                        .WithMany("LikesCategories")
+                        .HasForeignKey("ApplicationUserId");
+
+                    b.HasOne("ManyForMany.Models.Entity.Order.Order")
+                        .WithMany("Categories")
                         .HasForeignKey("OrderId");
                 });
 

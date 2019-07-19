@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ManyForMany.Migrations
 {
-    public partial class Recreate : Migration
+    public partial class addCategories : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -210,6 +210,21 @@ namespace ManyForMany.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    Id = table.Column<int>(nullable: false)
+                        .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(nullable: true),
+                    ApplicationUserId = table.Column<string>(nullable: true),
+                    OrderId = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -477,6 +492,16 @@ namespace ManyForMany.Migrations
                 column: "OrderId3");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Categories_ApplicationUserId",
+                table: "Categories",
+                column: "ApplicationUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_OrderId",
+                table: "Categories",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Chat_AdminId",
                 table: "Chat",
                 column: "AdminId");
@@ -583,6 +608,22 @@ namespace ManyForMany.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_Categories_AspNetUsers_ApplicationUserId",
+                table: "Categories",
+                column: "ApplicationUserId",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Categories_Orders_OrderId",
+                table: "Categories",
+                column: "OrderId",
+                principalTable: "Orders",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_Chat_AspNetUsers_AdminId",
                 table: "Chat",
                 column: "AdminId",
@@ -639,6 +680,9 @@ namespace ManyForMany.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
 
             migrationBuilder.DropTable(
                 name: "Messages");

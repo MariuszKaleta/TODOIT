@@ -14,7 +14,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Order
 {
-    public class Order : IId<string>
+    public class Order 
     {
         private Order()
         {
@@ -68,6 +68,8 @@ namespace ManyForMany.Models.Entity.Order
 
         public List<ApplicationUser> ActualTeam { get; private set; }
 
+        public List<Category> Categories { get; private set; }
+
         public List<Skill.Skill> RequiredSkills { get; private set; }
 
         public List<Skill.Skill> GoodIfHave { get; private set; }
@@ -86,17 +88,17 @@ namespace ManyForMany.Models.Entity.Order
 
     public static class OrderExtension
     {
-        public static async Task<Order> Get(this IQueryable<Order> users, string id, ILogger logger)
+        public static async Task<Order> Get(this IQueryable<Order> users, string id)
         {
-            return await users.Get(id, Errors.OrderIsNotExistInList, logger);
+            return users.Get(x=>x.Id, id, Errors.OrderIsNotExistInList);
         }
 
-        public static ShowPublicOrderViewModel ToPublicInformation(this IQueryable<Order> orders,  string id, ILogger _logger, OrderFileManager orderFileManager)
+        public static ShowPublicOrderViewModel ToPublicInformation(this IQueryable<Order> orders,  string id,  OrderFileManager orderFileManager)
         {
             return orders
                 .Include(x => x.RequiredSkills)
                 .Include(x => x.GoodIfHave)
-                .Get(id, _logger).GetAwaiter()
+                .Get(id).GetAwaiter()
                 .GetResult().ToPublicInformation(orderFileManager);
         }
         public static IQueryable<ShowPublicOrderViewModel> ToPublicInformation(this IQueryable<Order> orders, OrderFileManager orderFileManager)
@@ -129,7 +131,7 @@ namespace ManyForMany.Models.Entity.Order
             return await orderFileManager.DownladOrderFiles(order.Owner.Id, order.Id);
         }
 
-        public static void Edit(this Order order, OrderViewModel model)
+        public static void Edit(this Order order, EditOrderViewModel model)
         {
             if (order.Title != model.Title)
             {
@@ -144,6 +146,11 @@ namespace ManyForMany.Models.Entity.Order
             if (order.DeadLine != model.DeadLine)
             {
                 order.DeadLine = model.DeadLine;
+            }
+
+            if (order.Status != model.Status)
+            {
+                order.Status = model.Status;
             }
         }
 

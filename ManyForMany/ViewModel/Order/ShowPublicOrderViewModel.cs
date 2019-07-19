@@ -25,6 +25,7 @@ namespace ManyForMany.ViewModel.Order
             GoodIfHave = order.GoodIfHave;
             Status = order.Status;
             CreateTime = order.CreateTime;
+            Categories = order.Categories.ToArray();
         }
 
         public string Id { get; set; }
@@ -39,10 +40,10 @@ namespace ManyForMany.ViewModel.Order
 
         public File[] Files { get; set; }
 
-        public List<Skill> RequiredSkills { get; set; }
+        public List<Models.Entity.Skill.Skill> RequiredSkills { get; set; }
 
-        public List<Skill> GoodIfHave { get; set; }
+        public List<Models.Entity.Skill.Skill> GoodIfHave { get; set; }
 
-
+        public Category[] Categories { get; set; }
     }
 }

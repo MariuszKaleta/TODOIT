@@ -12,7 +12,7 @@ using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Chat
 {
-    public abstract class Chat : IId<string>
+    public abstract class Chat 
     {
         protected Chat()
         {

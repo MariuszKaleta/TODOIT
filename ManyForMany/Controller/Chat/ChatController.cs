@@ -44,10 +44,9 @@ namespace ManyForMany.Controller.Chat
         {
             var userId = UserManager.GetUserId(User);
 
-
             return _context.Messages
                 .Where(x => x.Chat.Id == chatId && x.Chat.Members.Any(y => y.Id == userId))
-                .Filter(y => y.Text, searchText, true)
+                .Filter(searchText, y => y.Text)
                 .TryTake(start, count)
                 .ToArray();
         }
@@ -85,7 +84,7 @@ namespace ManyForMany.Controller.Chat
         {
             var id = UserManager.GetUserId(User);
 
-            var admin = await _context.Users.Get(id, _logger);
+            var admin = await _context.Users.Get(id);
 
             var chat = new Models.Entity.Chat.TeamChat(admin, _context, model);
 
@@ -100,9 +99,9 @@ namespace ManyForMany.Controller.Chat
             var adminId = UserManager.GetUserId(User);
 
             var chatTask = _context.TeamChats
-                .Where(x => x.Admin.Id == adminId).Get(chatId, _logger);
+                .Where(x => x.Admin.Id == adminId).Get(chatId,_logger);
 
-            var users = _context.Users.Get<ApplicationUser>(userId);
+            var users = _context.Users.Get(userId);
 
             var chat = await chatTask;
 
@@ -123,7 +122,7 @@ namespace ManyForMany.Controller.Chat
 
             var chatTask = _context.TeamChats.Where(x => x.Admin.Id == adminId).Get(chatId, _logger);
 
-            var users = _context.Users.Get<ApplicationUser>(userId);
+            var users = _context.Users.Get(userId);
 
             var chat = await chatTask;
 

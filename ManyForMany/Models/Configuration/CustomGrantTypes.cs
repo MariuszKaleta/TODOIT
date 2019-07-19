@@ -12,6 +12,7 @@ namespace ManyForMany.Models.Configuration
         }
 
         public const string Google = nameof(Google);
+        public const string Linkedin = nameof(Linkedin);
 
         public static void AddCustomGrantTypes(this OpenIddictServerBuilder options)
         {
@@ -26,6 +27,7 @@ namespace ManyForMany.Models.Configuration
             get
             {
                 yield return Google;
+                yield return Linkedin;
             }
         }
     }

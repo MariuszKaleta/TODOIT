@@ -1,5 +1,6 @@
 ﻿using ManyForMany.Models.Entity.Chat;
 using ManyForMany.Models.Entity.Rate;
+using ManyForMany.Models.Entity.Skill;
 using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -29,8 +30,9 @@ namespace ManyForMany.Models.Entity
 
         public DbSet<MathcedCoWorkers> MathcedCoWorkerses { get; set; }
 
-        #endregion
+        public DbSet<Category> Categories { get; set; }
 
+        #endregion
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

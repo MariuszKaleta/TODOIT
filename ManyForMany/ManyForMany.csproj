@@ -65,6 +65,10 @@
     <ProjectReference Include="..\..\HellperDll\MvcHelper\MvcHelper.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
 
 
 </Project>

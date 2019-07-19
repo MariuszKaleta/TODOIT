@@ -63,7 +63,7 @@ namespace ManyForMany.Models.Entity.Chat
 
         public static async Task<TeamChat> Get(this IQueryable<TeamChat> chats, string id, ILogger logger)
         {
-            return await chats.Get(id, Errors.ChatIsNotExist, logger);
+            return await chats.Get(id, logger);
         }
     }
 }

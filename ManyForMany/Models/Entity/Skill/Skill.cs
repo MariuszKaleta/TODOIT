@@ -3,13 +3,14 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using ManyForMany.Models.Configuration;
+using ManyForMany.ViewModel.Skill;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using MvcHelper.Entity;
 
 namespace ManyForMany.Models.Entity.Skill
 {
-    public class Skill : IId<int>
+    public class Skill 
     {
         private Skill()
         {
@@ -30,14 +31,24 @@ namespace ManyForMany.Models.Entity.Skill
 
     public static class SkillExtension
     {
-        public static async Task<Skill> Get(this IQueryable<Skill> users, int id, ILogger logger)
+        public static SkillThumbnailViewModel ToThumbnail(this Skill skill)
         {
-            return await users.Get(id, Errors.SkillIsNotExistInList, logger);
+            return  new SkillThumbnailViewModel(skill);
         }
 
-        public static async Task Add(this IList<Skill> skills, int id, IQueryable<Skill> dataSkills, ILogger logger)
+        public static PublicSkillViewModel ToViewModel(this Skill skill)
         {
-            var skill = await dataSkills.Get(id, logger);
+            return  new PublicSkillViewModel(skill);
+        }
+        
+        public static async Task<Skill> Get(this IQueryable<Skill> skills, int id)
+        {
+            return skills.Get(x => x.Id, id, Errors.SkillIsNotExistInList);
+        }
+
+        public static async Task Add(this IList<Skill> skills, int id, IQueryable<Skill> dataSkills)
+        {
+            var skill = await dataSkills.Get(id);
 
             if (skills.FirstOrDefault(x => x.Id == id) != null)
             {
@@ -49,7 +60,7 @@ namespace ManyForMany.Models.Entity.Skill
 
         public static void Add(this List<Skill> skills, int[] idCollection, IQueryable<Skill> dataSkills)
         {
-            var skillsToAdd = dataSkills.Get(idCollection);
+            var skillsToAdd = dataSkills.Get(x => x.Id, idCollection);
 
             var commonPart = skills.AsQueryable().Intersect(skillsToAdd);
 

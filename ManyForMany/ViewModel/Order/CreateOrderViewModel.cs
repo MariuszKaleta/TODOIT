@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 namespace ManyForMany.ViewModel.Order
@@ -13,6 +14,9 @@ namespace ManyForMany.ViewModel.Order
         public int[] RequiredSkills { get; set; }
 
         public int[] GoodIfHave { get; set; }
+
+        [Required]
+        public int[] Categories { get; set; }
     }
 
 

@@ -38,9 +38,9 @@ namespace ManyForMany.Models.Entity.Rate
 
     public static class OpinionExtesnion
     {
-        public static ShowOpinionViewModel ToShowOpinionViewModel(this  Opinion opinion, DbSet<Order.Order> orders, ILogger logger)
+        public static ShowOpinionViewModel ToShowOpinionViewModel(this  Opinion opinion, DbSet<Order.Order> orders)
         {
-            var order = orders.Get(opinion.Id, logger).Result;
+            var order = orders.Get(opinion.Id).Result;
             
             return new ShowOpinionViewModel(opinion, order);
         }

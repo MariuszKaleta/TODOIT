@@ -73,25 +73,6 @@ namespace ManyForMany.Controller.Order
         #region Edit
 
         /// <summary>
-        /// Change Status of order
-        /// </summary>
-        /// <param name="orderId"></param>
-        /// <param name="status"></param>
-        /// <returns></returns>
-        [Authorize(Roles = CustomRoles.BasicUser)]
-        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(ChangeStatus), "{status}")]
-        public async Task ChangeStatus(string orderId, OrderStatus status)
-        {
-            var userId = UserManager.GetUserId(((ControllerBase) this).User);
-
-            var order = await _context.Orders.Where(x => x.Owner.Id == userId).Get(orderId, _logger);
-
-            order.Status = status;
-
-            _context.SaveChanges();
-        }
-
-        /// <summary>
         /// Edit Order 
         /// </summary>
         /// <param name="orderId"></param>
@@ -99,11 +80,11 @@ namespace ManyForMany.Controller.Order
         /// <returns></returns>
         [Authorize(Roles = CustomRoles.BasicUser)]
         [MvcHelper.Attributes.HttpPut("{orderId}")]
-        public async Task Edit(string orderId, OrderViewModel model)
+        public async Task Edit(string orderId, EditOrderViewModel model)
         {
             var userId = UserManager.GetUserId(((ControllerBase) this).User);
 
-            var order = await _context.Orders.Where(x => x.Owner.Id == userId).Get(orderId, _logger);
+            var order = await _context.Orders.Where(x => x.Owner.Id == userId).Get(orderId);
 
             order.Edit(model);
 
@@ -306,7 +287,7 @@ namespace ManyForMany.Controller.Order
             var order = await _context.Orders
                 .Include(x => x.ActualTeam)
                 .Where(x => x.Owner.Id == userId)
-                .Get(orderId, _logger);
+                .Get(orderId);
 
             return order.ActualTeam.Select(x=>x.ToUserThumbnail()).ToArray();
         }
@@ -315,7 +296,7 @@ namespace ManyForMany.Controller.Order
         [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Team), "{addUserId}")]
         public async Task User(string orderId, string addUserId)
         {
-            var userToAddTask = _context.Users.Get(addUserId, _logger);
+            var userToAddTask = _context.Users.Get(addUserId);
 
             var userId = UserManager.GetUserId(((ControllerBase)this).User);
 
@@ -323,7 +304,7 @@ namespace ManyForMany.Controller.Order
                 .Include(x=>x.ActualTeam)
                 .Include(x=>x.InterestedByUsers)
                 .Where(x => x.Owner.Id == userId)
-                .Get(orderId, _logger);
+                .Get(orderId);
 
 
             if (order.ActualTeam.Exists(x => x.Id == addUserId))
@@ -351,7 +332,7 @@ namespace ManyForMany.Controller.Order
         [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(Team), "{addUserId}")]
         public async Task RemoveUser(string orderId, string addUserId)
         {
-            var userToAddTask = _context.Users.Get(addUserId, _logger);
+            var userToAddTask = _context.Users.Get(addUserId);
 
             var userId = UserManager.GetUserId(((ControllerBase)this).User);
 
@@ -359,7 +340,7 @@ namespace ManyForMany.Controller.Order
                 .Include(x => x.ActualTeam)
                 .Include(x => x.InterestedByUsers)
                 .Where(x => x.Owner.Id == userId)
-                .Get(orderId, _logger);
+                .Get(orderId);
 
 
             if (!order.ActualTeam.Exists(x => x.Id == addUserId))

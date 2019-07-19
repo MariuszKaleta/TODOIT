@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using MultiLanguage.Exception;
 using MvcHelper;
 using OpenIddict.Abstractions;
@@ -46,39 +48,49 @@ namespace ManyForMany.Controller.User
         [Produces(Produces.Json)]
         public async Task<IActionResult> Exchange([ModelBinder(typeof(OpenIddictMvcBinder))] OpenIdConnectRequest request)
         {
-            if (request.GrantType == CustomGrantTypes.Google)
+            switch (request.GrantType)
             {
-                // Reject the request if the "assertion" parameter is missing.
-                if (string.IsNullOrEmpty(request.Token))
-                    throw new MultiLanguageException(nameof(request.Token), Error.ElementDoseNotExist);
+                case CustomGrantTypes.Google:
+                    // Reject the request if the "assertion" parameter is missing.
+                    if (string.IsNullOrEmpty(request.Token))
+                        throw new MultiLanguageException(nameof(request.Token), Error.ElementDoseNotExist);
 
-                try
-                {
-                    // Validate the access token using Google's token validation
-                    var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
-
-                    var user = await _userManager.FindByEmailAsync(payload.Email);
-
-                    if (user == null)
+                    try
                     {
-                        user = await Register(payload);
+                        // Validate the access token using Google's token validation
+                        var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
+
+                        var user = await _userManager.FindByEmailAsync(payload.Email);
+
+                        if (user == null)
+                        {
+                            user = await Register(payload);
+                        }
+
+                        if (!await _signInManager.CanSignInAsync(user))
+                            throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
+                        // Create a new authentication ticket and return sign in
+                        var ticket = await CreateTicketAsync(request, user);
+
+                        return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
                     }
-
-                    if (!await _signInManager.CanSignInAsync(user))
-                        throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
-                    // Create a new authentication ticket and return sign in
-                    var ticket = await CreateTicketAsync(request, user);
-
-                    return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
-                }
-                catch (InvalidJwtException)
-                {
-                    throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
-                }
+                    catch (InvalidJwtException)
+                    {
+                        throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
+                    }
+                case CustomGrantTypes.Linkedin:
+                    try
+                    {
+                        throw new NotImplementedException();
+                    }
+                    catch (InvalidJwtException)
+                    {
+                        throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
+                    }
+                default:
+                    throw new MultiLanguageException(nameof(request.GrantType),
+                        OpenIdConnectConstants.Errors.UnsupportedGrantType);
             }
-
-            throw new MultiLanguageException(nameof(request.GrantType),
-                OpenIdConnectConstants.Errors.UnsupportedGrantType);
         }
 
         [AllowAnonymous]

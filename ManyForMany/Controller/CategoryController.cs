@@ -6,8 +6,8 @@ using ManyForMany.Models.Configuration;
 using ManyForMany.Models.Entity;
 using ManyForMany.Models.Entity.Skill;
 using ManyForMany.Models.Entity.User;
+using ManyForMany.ViewModel.Categories;
 using ManyForMany.ViewModel.Order;
-using ManyForMany.ViewModel.Skill;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +22,10 @@ namespace ManyForMany.Controller
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
-    public class SkillController : Microsoft.AspNetCore.Mvc.Controller
+    public class CateogriesController : Microsoft.AspNetCore.Mvc.Controller
     {
 
-        public SkillController(ILogger<SkillController> logger, Context context, UserManager<ApplicationUser> userManager)
+        public CateogriesController(ILogger<CateogriesController> logger, Context context, UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
             _logger = logger;
@@ -35,7 +35,7 @@ namespace ManyForMany.Controller
         #region Properties
 
         public UserManager<ApplicationUser> _userManager;
-        private ILogger<SkillController> _logger;
+        private ILogger<CateogriesController> _logger;
         private readonly Context _context;
 
         #endregion
@@ -43,18 +43,35 @@ namespace ManyForMany.Controller
         #region Get
 
         [MvcHelper.Attributes.HttpGet()]
-        public SkillThumbnailViewModel[] Find([FromQuery] string text, [FromQuery] int? start, [FromQuery] int? count)
+        public ThumbnailCategoryViewModel[] Categories([FromQuery] string text, [FromQuery] int? start, [FromQuery] int? count)
         {
-            return _context.Skills.Filter(text, x => x.Name).TryTake(start, count).Select(x => x.ToThumbnail())
+            return _context.Categories
+                .Filter(text, x => x.Name)
+                .TryTake(start, count)
+                .Select(x => x.ToThumbnail())
                 .ToArray();
         }
 
         [MvcHelper.Attributes.HttpGet("{id}")]
-        public async Task<PublicSkillViewModel> Get(int id)
+        public PublicCategoryViewModel Categories(int id)
         {
-            return (await _context.Skills.Get(id)).ToViewModel();
+            return _context
+                .Categories
+                .Get(x => x.Id, id, Errors.CategoryDoseNotExist)
+                .ToViewModel();
         }
 
+        //todo temp
+        [AllowAnonymous]
+        [MvcHelper.Attributes.HttpPost()]
+        public void Create(CreateCategoryViewModel model)
+        {
+            var category = new Category(model);
+
+            _context.Categories.Add(category);
+
+            _context.SaveChanges();
+        }
 
 
         #endregion

@@ -56,59 +56,97 @@ namespace ManyForMany.Controller.Order
         [MvcHelper.Attributes.HttpGet("{orderId}")]
         public ShowPublicOrderViewModel Get(string orderId)
         {
-            return _context.Orders.ToPublicInformation(orderId, _logger, _orderFileManager);
+            return _context.Orders.ToPublicInformation(orderId, _orderFileManager);
         }
 
         [Authorize]
         [MvcHelper.Attributes.HttpGet(nameof(LookNew))]
-        public async Task<ShowPublicOrderViewModel[]> LookNew([FromQuery] int? start, [FromQuery] int? count)
+        public async Task<ShowPublicOrderViewModel[]> LookNew([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
         {
             var userId = UserManager.GetUserId(User);
 
-            return _context.Orders
+            var orders = _context.Orders
                 .Where(x => x.Status == OrderStatus.CompleteTeam
                             && x.RejectedByUsers.All(y => y.Id != userId)
                             && x.InterestedByUsers.All(y => y.Id != userId)
                             && x.Owner.Id != userId
-                            )
+                );
+
+            if (skills != null)
+            {
+                var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+            }
+
+            return
+                orders
                 .TryTake(start, count)
                 .ToPublicInformation(_orderFileManager).ToArray();
         }
 
         [Authorize]
         [MvcHelper.Attributes.HttpGet(nameof(Watched))]
-        public async Task<ShowPublicOrderViewModel[]> Watched([FromQuery] int? start, [FromQuery] int? count )
+        public async Task<ShowPublicOrderViewModel[]> Watched([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
         {
             var userId = UserManager.GetUserId(User);
 
-            return _context.Orders.Where(x =>
-                    x.InterestedByUsers.Any(y => y.Id == userId)
-                    || x.RejectedByUsers.Any(y => y.Id == userId)
-                )
+            var orders = _context.Orders.Where(x =>
+                x.InterestedByUsers.Any(y => y.Id == userId)
+                || x.RejectedByUsers.Any(y => y.Id == userId)
+            );
+
+            if (skills != null)
+            {
+                var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+            }
+
+            return
+                orders
                 .TryTake(start, count)
                 .ToPublicInformation(_orderFileManager).ToArray();
         }
 
         [Authorize]
         [MvcHelper.Attributes.HttpGet(nameof(Interested))]
-        public async Task<ShowPublicOrderViewModel[]> Interested([FromQuery] int? start, [FromQuery] int? count )
+        public async Task<ShowPublicOrderViewModel[]> Interested([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
         {
             var userId = UserManager.GetUserId(User);
 
-            return _context.Orders
-                .Where(x => x.InterestedByUsers.Any(y => y.Id == userId))
+            var orders = _context.Orders
+                .Where(x => x.InterestedByUsers.Any(y => y.Id == userId));
+
+            if (skills != null)
+            {
+                var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+            }
+
+            return orders
                 .TryTake(start, count)
                 .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
         }
 
         [Authorize]
         [MvcHelper.Attributes.HttpGet(nameof(Rejected))]
-        public async Task<ShowPublicOrderViewModel[]> Rejected([FromQuery] int? start, [FromQuery] int? count )
+        public async Task<ShowPublicOrderViewModel[]> Rejected([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
         {
             var userId = UserManager.GetUserId(User);
 
-            return _context.Orders
-                .Where(x => x.RejectedByUsers.Any(y => y.Id == userId))
+            var orders = _context.Orders
+                .Where(x => x.RejectedByUsers.Any(y => y.Id == userId));
+
+            if (skills != null)
+            {
+                var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+            }
+
+            return orders
                 .TryTake(start, count)
                 .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
         }
@@ -132,7 +170,7 @@ namespace ManyForMany.Controller.Order
 
             var tasks = elements.Select(x => Decide(user, x.ElementId, x.Decision));
 
-             await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
 
             await _context.SaveChangesAsync();
         }
@@ -142,23 +180,23 @@ namespace ManyForMany.Controller.Order
         #region Opinion
 
         [AllowAnonymous]
-        [MvcHelper.Attributes.HttpGet("{orderId}",nameof(Opinion))]
+        [MvcHelper.Attributes.HttpGet("{orderId}", nameof(Opinion))]
         public async Task<ShowOpinionViewModel[]> Opinion(string orderId, [FromQuery] int? start, [FromQuery] int? count)
         {
             return _context.Opinions
                 .Where(x => x.Order.Id == orderId)
-                .TryTake(start,count)
-                .Select(x=>x.ToShowOpinionViewModel(_context.Orders,_logger))
+                .TryTake(start, count)
+                .Select(x => x.ToShowOpinionViewModel(_context.Orders))
                 .ToArray();
         }
 
         [Authorize]
-        [MvcHelper.Attributes.HttpPost("{orderId}",nameof(Opinion))]
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Opinion))]
         public async Task CreateOpinion(string orderId, CreateOpinionViewModel model)
         {
             var authorTask = UserManager.GetUserAsync(User);
 
-            var order = await _context.Orders.Get(orderId, _logger);
+            var order = await _context.Orders.Get(orderId);
 
             var author = await authorTask;
 
@@ -181,7 +219,7 @@ namespace ManyForMany.Controller.Order
             var author = await UserManager.GetUserAsync(User);
 
             var opinion = await _context.Opinions
-                .Include(x=>x.Order)
+                .Include(x => x.Order)
                 .FirstOrDefaultAsync(x => x.Order.Id == orderId && x.Author == author);
 
 
@@ -207,7 +245,7 @@ namespace ManyForMany.Controller.Order
             var order = await _context.Orders
                 .Include(x => x.InterestedByUsers)
                 .Include(x => x.RejectedByUsers)
-                .Get(orderId, _logger);
+                .Get(orderId);
 
             if (order.Status != OrderStatus.CompleteTeam)
             {

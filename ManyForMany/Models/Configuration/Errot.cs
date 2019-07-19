@@ -45,5 +45,7 @@ namespace ManyForMany.Models.Configuration
 
         public const string YouCantAddToTeamYourself = "You Cant Add To Team Yourself";
         public const string MatchAlredyExist = "Match Alredy Exist";
+
+        public const string CategoryDoseNotExist = "Category dose not exist";
     }
 }

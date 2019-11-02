@@ -2,49 +2,91 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Order;
-using ManyForMany.Models.Entity.Rate;
-using ManyForMany.Models.Entity.User;
-using ManyForMany.Models.File;
-using ManyForMany.ViewModel.Opinion;
-using ManyForMany.ViewModel.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MultiLanguage.Exception;
-using MvcHelper.Attributes;
-using MvcHelper.Entity;
+using TODOIT.Model.Configuration;
+using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Rate;
+using TODOIT.Model.Entity.User;
+using TODOIT.Repositories.Contracts;
+using TODOIT.ViewModel.Opinion;
+using TODOIT.ViewModel.Order;
 
-namespace ManyForMany.Controller.Order
+namespace TODOIT.Controller.Order
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OpinionController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public OpinionController(ILogger<OpinionController> logger, Context context, UserManager<ApplicationUser> userManager)
+        public OpinionController( IOpinionRepository opinionRepository, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
-            _logger = logger;
-            _context = context;
+            _opinionRepository = opinionRepository;
         }
 
         #region Properties
 
         public UserManager<ApplicationUser> UserManager { get; }
-        private ILogger _logger;
-        private readonly Context _context;
-        private OrderFileManager _orderFileManager = new OrderFileManager();
+
+        private readonly IOpinionRepository _opinionRepository;
+        
 
         #endregion
 
-        [MvcHelper.Attributes.HttpGet(nameof(Rates))]
-        public Dictionary<string, int> Rates()
+        /// <summary>
+        /// Return all availables rates
+        /// </summary>
+        /// <returns></returns>
+        [MvcHelper.Attributes.HttpGet(nameof(AvailableRates))]
+        public Dictionary<string, int> AvailableRates()
         {
             return Enum.GetValues(typeof(Rate)).Cast<Rate>().ToDictionary(x => x.ToString(), x => (int) x);
+        }
+
+        /// <summary>
+        /// edit existed Order
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost(nameof(Update), "orderId")]
+        public async Task Update(Guid orderId, OpinionViewModel model)
+        {
+            var userAsync = UserManager.GetUserAsync(User);
+
+            var orderAsync = _opinionRepository.Get(orderId);
+
+            var order = await orderAsync;
+            var user = await userAsync;
+
+            if (order.Author.Id != user.Id)
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+
+            await _opinionRepository.Update(order, model);
+        }
+
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost(nameof(Remove), "orderId")]
+        public async Task Remove(Guid orderId)
+        {
+            var userAsync = UserManager.GetUserAsync(User);
+
+            var orderAsync = _opinionRepository.Get(orderId);
+
+            var order = await orderAsync;
+            var user = await userAsync;
+
+            if (order.Author.Id != user.Id)
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+
+            _opinionRepository.Delete(await orderAsync, true);
         }
     }
 }

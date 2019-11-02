@@ -1,14 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using TODOIT.Model.Entity.User;
 
-namespace ManyForMany.ViewModel.Team
+namespace TODOIT.ViewModel.Team
 {
     public class UserViewModel
     {
+        public UserViewModel(ApplicationUser user)
+        {
+            UserName = user.UserName;
+            Name = user.Name;
+            SurName = user.Surrname;
+            
+        }
+
+        public UserViewModel()
+        {
+
+        }
+
         public string UserName { get; set; }
         public string Name { get; set; }
         public string SurName { get; set; }
+
+
     }
 }

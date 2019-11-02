@@ -1,34 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using ManyForMany.Controller.Chat;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Chat;
-using ManyForMany.Models.Entity.Order;
-using ManyForMany.Models.Entity.User;
-using ManyForMany.ViewModel.Order;
-using ManyForMany.ViewModel.Team;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MultiLanguage.Exception;
-using MvcHelper.Attributes;
-using MvcHelper.Entity;
+using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.User;
 
-namespace ManyForMany.Controller.User
+namespace TODOIT.Controller.User
 {
+    [Obsolete]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class CoWorkerController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public CoWorkerController(ILogger<CoWorkerController> logger, Context context, UserManager<ApplicationUser> userManager)
+        public CoWorkerController( Context context, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
-            _logger = logger;
             _context = context;
         }
 
@@ -40,115 +26,117 @@ namespace ManyForMany.Controller.User
 
         #endregion
 
-        #region Get
+      //  #region Get
+        /*
+       [AllowAnonymous]
+       [MvcHelper.Attributes.HttpGet("{userId}")]
+       public async Task<PublicUserViewModel> Get(string userId)
+       {
+           var user = await _context.Users
+               .Include(x => x.Skills)
+               .Get(userId);
 
-        [AllowAnonymous]
-        [MvcHelper.Attributes.HttpGet("{userId}")]
-        public async Task<UserInformationViewModel> Get(string userId)
-        {
-            var user = await _context.Users
-                .Include(x => x.Skills)
-                .Get(userId);
-
-            return user.ToUserInformation();
-        }
-
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(LookNew))]
-        public async Task<UserInformationViewModel[]> LookNew([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
-        {
-            var userId = UserManager.GetUserId(User);
-
-            var orders = _context.Users
-                .Where(x => x.RejectedByOtherUsers.All(y => y.Id != userId)
-                            && x.InterestedByOtherUsers.All(y => y.Id != userId)
-                            && x.Id != userId
-                );
-
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
-
-            return
-                orders
-                    .TryTake(start, count)
-                    .Select(x=>x.ToUserInformation())
-                    .ToArray();
-        }
+           return user.ToViewModel(_context);
+       }
 
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Watched))]
-        public async Task<UserInformationViewModel[]> Watched([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
-        {
-            var userId = UserManager.GetUserId(User);
+       [Authorize]
+       [MvcHelper.Attributes.HttpGet(nameof(LookNew))]
+       public async Task<PublicUserViewModel[]> LookNew([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+       {
+           var userId = UserManager.GetUserId(User);
 
-            var orders = _context.Users.Where(x =>
-                x.InterestedByOtherUsers.Any(y => y.Id == userId)
-                || x.RejectedByOtherUsers.Any(y => y.Id == userId)
-            );
+           var orders = _context.Users
+               .Where(x => x.RejectedByOtherUsers.All(y => y.Id != userId)
+                           && x.InterestedByOtherUsers.All(y => y.Id != userId)
+                           && x.Id != userId
+               );
 
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
+           if (skills != null)
+           {
+               var findSkills = _context.Skills.Get(x => x.Id, skills);
 
-                orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
+               orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+           }
 
-            return orders
-                .TryTake(start, count)
-                .Select(x => x.ToUserInformation())
-                .ToArray();
-        }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Interested))]
-        public async Task<UserInformationViewModel[]> Interested([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
-        {
-            var userId = UserManager.GetUserId(User);
-
-            var orders = _context.Users
-                .Where(x => x.InterestedByOtherUsers.Any(y => y.Id == userId));
-
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
+           return
+               orders
+                   .TryTake(start, count)
+                   .Select(x=>x.ToViewModel(_context))
+                   .ToArray();
+       }
 
 
-            return orders 
-                .TryTake(start, count)
-                .TryTake(start, count)
-                .Select(x => x.ToUserInformation())
-                .ToArray();
-        }
+       [Authorize]
+       [MvcHelper.Attributes.HttpGet(nameof(Watched))]
+       public async Task<PublicUserViewModel[]> Watched([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+       {
+           var userId = UserManager.GetUserId(User);
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Rejected))]
-        public async Task<UserInformationViewModel[]> Rejected([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
-        {
-            var userId = UserManager.GetUserId(User);
+           var orders = _context.Users.Where(x =>
+               x.InterestedByOtherUsers.Any(y => y.Id == userId)
+               || x.RejectedByOtherUsers.Any(y => y.Id == userId)
+           );
 
-            var orders = _context.Users
-                .Where(x => x.RejectedByOtherUsers.Any(y => y.Id == userId));
+           if (skills != null)
+           {
+               var findSkills = _context.Skills.Get(x => x.Id, skills);
 
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
+               orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+           }
 
-                orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
+           return orders
+               .TryTake(start, count)
+               .Select(x => x.ToViewModel(_context))
+               .ToArray();
+       }
 
-            return orders
-                .TryTake(start, count)
-                .Select(x => x.ToUserInformation()).ToArray();
-        }
+       [Authorize]
+       [MvcHelper.Attributes.HttpGet(nameof(Interested))]
+       public async Task<PublicUserViewModel[]> Interested([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+       {
+           var userId = UserManager.GetUserId(User);
+
+           var orders = _context.Users
+               .Where(x => x.InterestedByOtherUsers.Any(y => y.Id == userId));
+
+           if (skills != null)
+           {
+               var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+               orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+           }
+
+
+           return orders 
+               .TryTake(start, count)
+               .TryTake(start, count)
+               .Select(x => x.ToViewModel(_context))
+               .ToArray();
+       }
+
+       [Authorize]
+       [MvcHelper.Attributes.HttpGet(nameof(Rejected))]
+       public async Task<PublicUserViewModel[]> Rejected([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+       {
+           var userId = UserManager.GetUserId(User);
+
+           var orders = _context.Users
+               .Where(x => x.RejectedByOtherUsers.Any(y => y.Id == userId));
+
+           if (skills != null)
+           {
+               var findSkills = _context.Skills.Get(x => x.Id, skills);
+
+               orders = orders.Filter(x => x.Skills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+           }
+
+           return orders
+               .TryTake(start, count)
+               .Select(x => x.ToViewModel(_context)).ToArray();
+       }
+       
+
 
         [Authorize]
         [MvcHelper.Attributes.HttpPost(nameof(Decide), "{userId}", "{decision}")]
@@ -176,7 +164,7 @@ namespace ManyForMany.Controller.User
 
         [Authorize]
         [MvcHelper.Attributes.HttpPost(nameof(Matched))]
-        public UserInformationViewModel[] Matched([FromQuery] int? start, [FromQuery] int? count)
+        public PublicUserViewModel[] Matched([FromQuery] int? start, [FromQuery] int? count)
         {
             var userId = UserManager.GetUserId(User);
 
@@ -185,12 +173,13 @@ namespace ManyForMany.Controller.User
                 .Where(x => x.Persons.Any(y => y.Id == userId))
                 .Select(x => x.Persons.FirstOrDefault(y => y.Id != userId))
                 .TryTake(start, count)
-                .Select(x => x.ToUserInformation())
+                .Select(x => x.ToViewModel(_context))
                 .ToArray();
         }
 
-        #endregion
 
+        #endregion
+        /*
         #region Helper
 
         private async Task Decide(ApplicationUser UserWhichMakeChoose, string userId, bool decide)
@@ -242,5 +231,7 @@ namespace ManyForMany.Controller.User
         }
 
         #endregion
+
+        */
     }
 }

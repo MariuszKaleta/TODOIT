@@ -3,21 +3,20 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Chat;
-using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using Newtonsoft.Json;
 using OpenIddict.Validation;
+using TODOIT.Model.Configuration;
+using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Chat;
+using TODOIT.Model.Entity.User;
 using IClientProxy = Microsoft.AspNetCore.SignalR.IClientProxy;
 
-namespace ManyForMany.Controller.Chat
+namespace TODOIT.Controller.Chat
 {
     [Authorize(AuthenticationSchemes = OpenIddictValidationDefaults.AuthenticationScheme)]
     public class ChatHub : Hub
@@ -26,9 +25,9 @@ namespace ManyForMany.Controller.Chat
         private readonly Context _context;
         private readonly Logger<ChatHub> _logger;
 
-        private ConcurrentDictionary<ApplicationUser, (Models.Entity.Chat.Chat chat, IClientProxy client)> ActualUserChatToGroupName =
-            new ConcurrentDictionary<ApplicationUser, (Models.Entity.Chat.Chat chat, IClientProxy client)>();
-
+        private ConcurrentDictionary<ApplicationUser, (Model.Entity.Chat.Chat chat, IClientProxy client)> ActualUserChatToGroupName =
+            new ConcurrentDictionary<ApplicationUser, (Model.Entity.Chat.Chat chat, IClientProxy client)>();
+        /*
         public ChatHub(UserManager<ApplicationUser> userManager, Context context, Logger<ChatHub> logger)
         {
             _userManager = userManager;
@@ -97,7 +96,7 @@ namespace ManyForMany.Controller.Chat
 
             await base.OnDisconnectedAsync(exception);
         }
-
+        */
 
     }
 }

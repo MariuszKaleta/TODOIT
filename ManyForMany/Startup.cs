@@ -4,58 +4,73 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
-using ManyForMany.Controller.Chat;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Skill;
-using ManyForMany.Models.Entity.User;
+using GraphQL.DataLoader;
+using GraphQL.Server;
+using GraphQL.Server.Ui.Playground;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 using OpenIddict.Abstractions;
 using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
-using OpenIddict.Validation;
-using Swashbuckle.AspNetCore.Swagger;
+using TODOIT.GraphQl.Queries;
+using TODOIT.GraphQl.Schema;
+using TODOIT.Model.Configuration;
+using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Skill;
+using TODOIT.Model.Entity.User;
+using TODOIT.Repositories;
+using TODOIT.Repositories.Contracts;
+using Microsoft.AspNetCore.Identity.UI;
 
-namespace ManyForMany
+namespace TODOIT
 {
 
     public class Startup
     {
         public Startup(IConfiguration configuration)
         {
-            configuration.Bind(Configur);
+            configuration.Bind(Config);
         }
 
-        public Configuration Configur { get; set; } = new Configuration();
+        public Configuration Config { get; set; } = new Configuration();
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(o => o.AddPolicy(Configur.Policy, builder =>
-            {
-                builder
-                    .AllowCredentials()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            }));
-            services.AddSignalR(x =>
-            {
-                x.EnableDetailedErrors = true;
-            });
+            services
+                .AddMvcCore(x => x.EnableEndpointRouting = false)
+                .AddApiExplorer()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
+                ;
 
-            services.AddCors();
-            services.AddMvc();
+            services.Configure<KestrelServerOptions>(options => { options.AllowSynchronousIO = true; });
+
+            // If using IIS:
+            services.Configure<IISServerOptions>(options => { options.AllowSynchronousIO = true; });
 
             services.AddDbContext<Context>(options =>
             {
-                options.UseSqlServer(Configur.ConnectionStrings.DefaultConnection);
-                options.UseOpenIddict();
-            });
+                options.UseSqlServer(Config.ConnectionStrings.DefaultConnection);
+                
+                // options.UseOpenIddict();
+            }, ServiceLifetime.Transient);
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+            services.AddDefaultIdentity<ApplicationUser>()
+                .AddEntityFrameworkStores<Context>()
+                .AddDefaultTokenProviders();
+
+            /*
+            services.AddIdentityCore<ApplicationUser>()
+                .AddEntityFrameworkStores<Context>()
+                .AddDefaultTokenProviders();
+        
+              services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<Context>()
                 .AddDefaultTokenProviders();
 
@@ -67,32 +82,77 @@ namespace ManyForMany
             });
 
             services.AddOpenIddict()
+
+                // Register the OpenIddict core services.
                 .AddCore(options =>
                 {
+                    // Register the Entity Framework stores and models.
                     options.UseEntityFrameworkCore()
-                           .UseDbContext<Context>();
+                        .UseDbContext<Context>();
                 })
 
+                // Register the OpenIddict server handler.
                 .AddServer(options =>
                 {
-                    options.UseMvc();
+                    // Enable the token endpoint.
                     options.EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint);
 
+                    // Enable the password and the refresh token flows.
+                    options.AllowRefreshTokenFlow();
+
+                    // Accept anonymous clients (i.e clients that don't send a client_id).
                     options.AcceptAnonymousClients();
+
+                    // During development, you can disable the HTTPS requirement.
                     options.DisableHttpsRequirement();
-                    options.AddCustomGrantTypes();
+
+                    // Note: to use JWT access tokens instead of the default
+                    // encrypted format, the following lines are required:
+                    //
+                    // options.UseJsonWebTokens();
+                    // options.AddEphemeralSigningKey();
                 })
+
+                // Register the OpenIddict validation handler.
+                // Note: the OpenIddict validation handler is only compatible with the
+                // default token format or with reference tokens and cannot be used with
+                // JWT tokens. For JWT tokens, use the Microsoft JWT bearer handler.
                 .AddValidation();
+                */
+            var scopes = new string[]
+            {
+                //OpenIddictConstants.Scopes.Phone
+            };
 
             services
-                .AddAuthentication(options =>
+                .AddAuthentication(x=>x.DefaultAuthenticateScheme = CustomGrantTypes.Google)
+                .AddGoogle(options =>
+                {
+                    
+                    options.ClientId = Config.Authentication.Google.ClientId;
+                    options.ClientSecret = Config.Authentication.Google.ClientSecret;
+                    foreach (var scope in scopes)
                     {
-                        options.DefaultAuthenticateScheme = OpenIddictValidationDefaults.AuthenticationScheme;
-                        options.DefaultChallengeScheme = OpenIddictValidationDefaults.AuthenticationScheme;
-                    })
-                ;
+                        options.Scope.Add(scope);
+                    }
+                })
+                .AddFacebook(options =>
+                {
+                    options.ClientId = Config.Authentication.Facebook.AppId;
+                    options.ClientSecret = Config.Authentication.Facebook.AppSecret;
+                    foreach (var scope in scopes)
+                    {
+                        options.Scope.Add(scope);
+                    }
+                })
+                .AddLinkedIn(options =>
+                {
+                    options.ClientId = Config.Authentication.LinkedIn.ClientId;
+                    options.ClientSecret = Config.Authentication.LinkedIn.ClientSecret;
+                });
 
             Swagger(services);
+            GraphQl(services);
         }
 
         private void Swagger(IServiceCollection services)
@@ -100,40 +160,92 @@ namespace ManyForMany
             //swagger
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info()
+                c.SwaggerDoc("v1", new OpenApiInfo()
                 {
                     Version = "v1",
                     Title = "API",
                     Description = "Test API with ASP.NET Core 3.0"
                 });
 
-
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, SwaggerHelper.XmlPath);
                 c.IncludeXmlComments(xmlPath);
             });
         }
 
-
-        public void Configure(IApplicationBuilder app)
+        public static void GraphQl(IServiceCollection services)
         {
-            app.UseDeveloperExceptionPage();
+            services.AddSingleton<IDataLoaderContextAccessor>(new DataLoaderContextAccessor());
 
+            services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ISkillRepository, SkillRepository>();
+
+            services.AddScoped<AppQuery>();
+            // services.AddScoped<AppMutation>();
+            //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
+            services.AddScoped<AppSchema>();
+
+            services.AddGraphQL(o =>
+                {
+                    o.ExposeExceptions = true;
+                    o.EnableMetrics = true;
+                })
+                .AddGraphTypes(ServiceLifetime.Scoped)
+                .AddDataLoader()
+                ;
+        }
+
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        {
+            /*
+            var a =
+            {
+                AuthenticationScheme = "LinkedIn",
+                CallbackPath = new PathString("/signin-linkedin"),
+                ClientId = Configuration["Authentication:LinkedIn:ClientId"],
+                ClientSecret = Configuration["Authentication:LinkedIn:ClientSecret"],
+                Scope = {LinkedInScopes.BasicProfile, LinkedInScopes.EmailAddress}
+            };
+           
+            app.UseLinkedInAccountAuthentication(new LinkedInAccountOptions(LinkedInFields.All)
+            {
+                ClientId = Config.Authentication.LinkedIn.ClientId,
+                ClientSecret = Config.Authentication.LinkedIn.ClientSecret,
+            });
+
+             */
+
+            //app.UseBrowserLink();
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Home/Error");
+                app.UseHsts();
+            }
+
+            // app.UseWelcomePage();
+            app.UseStaticFiles();
+            app.UseHttpsRedirection();
             app.UseAuthentication();
-
+            Swagger(app);
+            GraphQl(app);
+            
             app.UseMvcWithDefaultRoute();
 
-            Swagger(app);
 
-
-            app.UseCors(Configur.Policy);
+            /*
+            app.UseCors(Config.Policy);
 
             app.UseSignalR(routes =>
             {
                 routes.MapHub<ChatHub>($"{MvcHelper.AttributeHelper.AddressPathSeparator}{nameof(ChatHub)}",
                     x => { });
             });
-
-            InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
+            */
+            //InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
         }
 
         private void Swagger(IApplicationBuilder app)
@@ -143,6 +255,12 @@ namespace ManyForMany
             {
                 c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
             });
+        }
+
+        private void GraphQl(IApplicationBuilder app)
+        {
+            app.UseGraphQL<AppSchema>();
+            app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
         }
 
         private async Task InitializeAsync(IServiceProvider services)
@@ -156,7 +274,7 @@ namespace ManyForMany
 
                 var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictApplication>>();
 
-                var clientId = Configur.ClientId;
+                var clientId = Config.ClientId;
                 var client = await manager.FindByClientIdAsync(clientId);
 
                 if (client == null)
@@ -193,9 +311,7 @@ namespace ManyForMany
             }
 
         }
-
-
-
+        /*
         private async Task CreateSkills(Context context)
         {
             var rows =
@@ -215,11 +331,13 @@ namespace ManyForMany
                 catch (Exception e)
                 {
                     errors.Add(skill);
-                   //var a =  context.Skills.Count();
+                    //var a =  context.Skills.Count();
                 }
             }
 
 
         }
+
+        */
     }
 }

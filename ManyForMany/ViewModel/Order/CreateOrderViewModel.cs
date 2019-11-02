@@ -1,24 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-namespace ManyForMany.ViewModel.Order
+﻿using MvcHelper.Attributes;
+
+namespace TODOIT.ViewModel.Order
 {
     public class CreateOrderViewModel : OrderViewModel
     {
-        public FileViewModel[] Images { get; set; }
 
-        public FileViewModel[] Files { get; set; }
-
-        public int[] RequiredSkills { get; set; }
-
-        public int[] GoodIfHave { get; set; }
-
-        [Required]
-        public int[] Categories { get; set; }
+        public string[] Skills { get; set; }
     }
-
-
-
 }

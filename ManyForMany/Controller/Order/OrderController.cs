@@ -1,276 +1,152 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.Order;
-using ManyForMany.Models.Entity.Rate;
-using ManyForMany.Models.Entity.User;
-using ManyForMany.Models.File;
-using ManyForMany.ViewModel.Opinion;
-using ManyForMany.ViewModel.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MultiLanguage.Exception;
 using MvcHelper.Entity;
+using TODOIT.Model.Configuration;
+using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Order;
+using TODOIT.Model.Entity.Rate;
+using TODOIT.Model.Entity.User;
+using TODOIT.Repositories.Contracts;
+using TODOIT.ViewModel.Opinion;
+using TODOIT.ViewModel.Order;
 
-namespace ManyForMany.Controller.Order
+namespace TODOIT.Controller.Order
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OrderController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public OrderController(ILogger<OrderController> logger, Context context, UserManager<ApplicationUser> userManager)
+
+        public OrderController(UserManager<ApplicationUser> userManager, IOrderRepository orderRepository, IOpinionRepository opinionRepository)
         {
             UserManager = userManager;
-            _logger = logger;
-            _context = context;
+            _orderRepository = orderRepository;
+            _opinionRepository = opinionRepository;
         }
 
         #region Properties
 
-        public UserManager<ApplicationUser> UserManager { get; }
-        private ILogger _logger;
-        private readonly Context _context;
-        private OrderFileManager _orderFileManager = new OrderFileManager();
+        private readonly UserManager<ApplicationUser> UserManager;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IOpinionRepository _opinionRepository;
 
         #endregion
 
         #region API
 
-        #region Get
-
-        [AllowAnonymous]
-        [MvcHelper.Attributes.HttpGet(nameof(AvailableStatus))]
-        public Dictionary<int, string> AvailableStatus()
+        /// <summary>
+        /// Make decision
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <param name="decision"></param>
+        /// <returns></returns>
+        //[Authorize]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost(nameof(AddToInterested), "{orderId}")]
+        public async Task AddToInterested(Guid orderId)
         {
-            return Enum.GetValues(typeof(OrderStatus)).Cast<OrderStatus>()
-                .ToDictionary(x => (int)x, x => x.ToString());
+            var userAsync = UserManager.GetUserAsync(User);
+            var orderAsync = _orderRepository.Get(orderId);
+
+            await _orderRepository.AddToInterested(await userAsync, await orderAsync);
         }
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet("{orderId}")]
-        public ShowPublicOrderViewModel Get(string orderId)
+        /// <summary>
+        /// Maky many decision
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        //[Authorize]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost(nameof(AddToInterested))]
+        public async Task AddToInterested(Guid[] ids)
         {
-            return _context.Orders.ToPublicInformation(orderId, _orderFileManager);
+            var userAsync = UserManager.GetUserAsync(User);
+
+            var ordersAsync = _orderRepository.Get(ids);
+
+            await _orderRepository.AddToInterested(await userAsync, await ordersAsync);
         }
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(LookNew))]
-        public async Task<ShowPublicOrderViewModel[]> LookNew([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+        /// <summary>
+        /// Create new Order
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [MvcHelper.Attributes.HttpPost(nameof(Create))]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        public async Task Create(CreateOrderViewModel model)
         {
-            var userId = UserManager.GetUserId(User);
+            var userAsync = UserManager.GetUserAsync(User);
 
-            var orders = _context.Orders
-                .Where(x => x.Status == OrderStatus.CompleteTeam
-                            && x.RejectedByUsers.All(y => y.Id != userId)
-                            && x.InterestedByUsers.All(y => y.Id != userId)
-                            && x.Owner.Id != userId
-                );
+            await _orderRepository.Create(model, await userAsync);
+        }
 
-            if (skills != null)
+        /// <summary>
+        /// edit existed Order
+        /// </summary>
+        /// <param name="orderId"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost("orderId", nameof(Update))]
+        public async Task Update(Guid orderId, CreateOrderViewModel model)
+        {
+            var userAsync = UserManager.GetUserAsync(User);
+
+            var orderAsync = _orderRepository.Get(orderId);
+
+            var order = await orderAsync;
+            var user = await userAsync;
+
+            if (order.Owner.Id != user.Id)
             {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            return
-                orders
-                .TryTake(start, count)
-                .ToPublicInformation(_orderFileManager).ToArray();
+            await _orderRepository.Update(model, order);
         }
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Watched))]
-        public async Task<ShowPublicOrderViewModel[]> Watched([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost("orderId", nameof(Remove))]
+        public async Task Remove(Guid orderId)
         {
-            var userId = UserManager.GetUserId(User);
+            var userAsync = UserManager.GetUserAsync(User);
 
-            var orders = _context.Orders.Where(x =>
-                x.InterestedByUsers.Any(y => y.Id == userId)
-                || x.RejectedByUsers.Any(y => y.Id == userId)
-            );
+            var orderAsync = _orderRepository.Get(orderId);
 
-            if (skills != null)
+            var order = await orderAsync;
+            var user = await userAsync;
+
+            if (order.Owner.Id != user.Id)
             {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            return
-                orders
-                .TryTake(start, count)
-                .ToPublicInformation(_orderFileManager).ToArray();
+            _orderRepository.Delete(await orderAsync, true, await userAsync);
         }
 
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Interested))]
-        public async Task<ShowPublicOrderViewModel[]> Interested([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
+        /// <summary>
+        /// Create new Order
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [MvcHelper.Attributes.HttpPost("orderId", nameof(Opinion) , nameof(Create))]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        public async Task Create(Guid orderId, OpinionViewModel model)
         {
-            var userId = UserManager.GetUserId(User);
+            var userAsync = UserManager.GetUserAsync(User);
 
-            var orders = _context.Orders
-                .Where(x => x.InterestedByUsers.Any(y => y.Id == userId));
+            var orderAsync = _orderRepository.Get(orderId);
 
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
-
-            return orders
-                .TryTake(start, count)
-                .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
+            await _opinionRepository.Create(model, await userAsync, await orderAsync);
         }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpGet(nameof(Rejected))]
-        public async Task<ShowPublicOrderViewModel[]> Rejected([FromQuery] int? start, [FromQuery] int? count, [FromQuery] int[] skills, [FromQuery] int? howMatchSkillsShouldByIncludeInOrder)
-        {
-            var userId = UserManager.GetUserId(User);
-
-            var orders = _context.Orders
-                .Where(x => x.RejectedByUsers.Any(y => y.Id == userId));
-
-            if (skills != null)
-            {
-                var findSkills = _context.Skills.Get(x => x.Id, skills);
-
-                orders = orders.Filter(x => x.RequiredSkills, findSkills, howMatchSkillsShouldByIncludeInOrder);
-            }
-
-            return orders
-                .TryTake(start, count)
-                .Select(x => x.ToPublicInformation(_orderFileManager)).ToArray();
-        }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpPost(nameof(Decide), "{orderId}", "{decision}")]
-        public async Task Decide(string orderId, bool decision)
-        {
-            var user = await UserManager.GetUserAsync(User);
-
-            await Decide(user, orderId, decision);
-
-            await _context.SaveChangesAsync();
-        }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpPost(nameof(Decide))]
-        public async Task Decide(DecideViewModel[] elements)
-        {
-            var user = await UserManager.GetUserAsync(User);
-
-            var tasks = elements.Select(x => Decide(user, x.ElementId, x.Decision));
-
-            await Task.WhenAll(tasks);
-
-            await _context.SaveChangesAsync();
-        }
-
-        #endregion
-
-        #region Opinion
-
-        [AllowAnonymous]
-        [MvcHelper.Attributes.HttpGet("{orderId}", nameof(Opinion))]
-        public async Task<ShowOpinionViewModel[]> Opinion(string orderId, [FromQuery] int? start, [FromQuery] int? count)
-        {
-            return _context.Opinions
-                .Where(x => x.Order.Id == orderId)
-                .TryTake(start, count)
-                .Select(x => x.ToShowOpinionViewModel(_context.Orders))
-                .ToArray();
-        }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Opinion))]
-        public async Task CreateOpinion(string orderId, CreateOpinionViewModel model)
-        {
-            var authorTask = UserManager.GetUserAsync(User);
-
-            var order = await _context.Orders.Get(orderId);
-
-            var author = await authorTask;
-
-            if (!order.UsersWhichCanComment.Exists(x => x.Id == author.Id))
-            {
-                throw new MultiLanguageException(nameof(author), Errors.YouCantCommentThis);
-            }
-
-            var opinion = new Opinion(author, order, model);
-            order.UsersWhichCanComment.Remove(author);
-
-            _context.Opinions.Add(opinion);
-            _context.SaveChanges();
-        }
-
-        [Authorize]
-        [MvcHelper.Attributes.HttpDelete("{orderId}", nameof(Opinion))]
-        public async Task RemoveOpinion(string orderId)
-        {
-            var author = await UserManager.GetUserAsync(User);
-
-            var opinion = await _context.Opinions
-                .Include(x => x.Order)
-                .FirstOrDefaultAsync(x => x.Order.Id == orderId && x.Author == author);
-
-
-            if (opinion == null)
-            {
-                throw new MultiLanguageException(nameof(author), Errors.YouNotCommentThis);
-            }
-
-            opinion.Order.UsersWhichCanComment.Add(author);
-
-            _context.Opinions.Remove(opinion);
-            _context.SaveChanges();
-        }
-
-        #endregion
-
-        #endregion
-
-        #region Helper
-
-        private async Task Decide(ApplicationUser user, string orderId, bool decide)
-        {
-            var order = await _context.Orders
-                .Include(x => x.InterestedByUsers)
-                .Include(x => x.RejectedByUsers)
-                .Get(orderId);
-
-            if (order.Status != OrderStatus.CompleteTeam)
-            {
-                throw new MultiLanguageException(nameof(order.Status), Errors.OwnerOfOrderDontLookingForTeam);
-            }
-
-            if (order.Owner == user)
-            {
-                throw new MultiLanguageException(nameof(order.Owner), Errors.YouCantJoinToYourOrderTeam);
-            }
-
-
-            if (decide)
-            {
-                order.InterestedByUsers.Add(user);
-                order.RejectedByUsers.Remove(user);
-            }
-            else
-            {
-                order.RejectedByUsers.Add(user);
-                order.InterestedByUsers.Remove(user);
-            }
-        }
-
-
 
         #endregion
     }

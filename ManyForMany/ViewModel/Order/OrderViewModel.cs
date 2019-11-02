@@ -1,26 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using MvcHelper.Validation.Attributes;
+using TODOIT.Model.Entity.Order;
 
-namespace ManyForMany.ViewModel.Order
+namespace TODOIT.ViewModel.Order
 {
-    public class OrderViewModel
+    public class OrderViewModel 
     {
-        public OrderViewModel()
-        {
+        public string Name { get; set; }
 
-        }
-
-        [Required]
-        public string Title { get; set; }
-
-        [Required]
         public string Describe { get; set; }
 
-        [DateInRange(MustBeAfterToday = true, CanBeNull = true)]
+        [MvcHelper.Validation.Attributes.DateInRange(CanBeNull = true,MustBeAfterToday = true)]
         public DateTime DeadLine { get; set; }
+
+        public OrderStatus OrderStatus { get; set; }
+
+        //[Required]
+        //public int[] Categories { get; set; }
     }
 }

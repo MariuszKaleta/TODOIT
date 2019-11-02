@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
-namespace ManyForMany
+namespace TODOIT
 {
     public class Program
     {
@@ -16,15 +15,16 @@ namespace ManyForMany
         public static IWebHost BuildWebHost(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
+                //.UseApplicationInsights()
                 .UseConfiguration(new ConfigurationBuilder()
                     .AddCommandLine(args)
                     .Build())
                 .UseStartup<Startup>()
-                .ConfigureLogging(logging =>
-                {
-                    logging.ClearProviders();
-                    logging.AddConsole();
-                })
+                //.ConfigureLogging(logging =>
+               // {
+              //      logging.ClearProviders();
+              //      logging.AddConsole();
+              //  })
                 .Build();
         }
     }

@@ -7,27 +7,29 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Extensions;
 using AspNet.Security.OpenIdConnect.Primitives;
 using Google.Apis.Auth;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity.User;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using MultiLanguage.Exception;
 using MvcHelper;
 using OpenIddict.Abstractions;
 using OpenIddict.Mvc.Internal;
 using OpenIddict.Server;
-using AuthenticationProperties = Microsoft.AspNetCore.Authentication.AuthenticationProperties;
+using TODOIT.Model.Configuration;
+using TODOIT.Model.Entity.User;
+using TODOIT.ViewModel.User;
 
-namespace ManyForMany.Controller.User
+namespace TODOIT.Controller.User
 {
+    [ApiController]
+    [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class AuthorizationController : Microsoft.AspNetCore.Mvc.Controller
     {
         private readonly IOptions<IdentityOptions> _identityOptions;
@@ -48,45 +50,45 @@ namespace ManyForMany.Controller.User
         [Produces(Produces.Json)]
         public async Task<IActionResult> Exchange([ModelBinder(typeof(OpenIddictMvcBinder))] OpenIdConnectRequest request)
         {
+            //throw new NotImplementedException();
             switch (request.GrantType)
             {
                 case CustomGrantTypes.Google:
-                    // Reject the request if the "assertion" parameter is missing.
-                    if (string.IsNullOrEmpty(request.Token))
-                        throw new MultiLanguageException(nameof(request.Token), Error.ElementDoseNotExist);
-
-                    try
-                    {
-                        // Validate the access token using Google's token validation
-                        var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
-
-                        var user = await _userManager.FindByEmailAsync(payload.Email);
-
-                        if (user == null)
-                        {
-                            user = await Register(payload);
-                        }
-
-                        if (!await _signInManager.CanSignInAsync(user))
-                            throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
-                        // Create a new authentication ticket and return sign in
-                        var ticket = await CreateTicketAsync(request, user);
-
-                        return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
-                    }
-                    catch (InvalidJwtException)
-                    {
-                        throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
-                    }
-                case CustomGrantTypes.Linkedin:
-                    try
                     {
                         throw new NotImplementedException();
+
+                        /*
+                        try
+                        {
+
+                            // Validate the access token using Google's token validation
+                            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
+
+                            var user = await _userManager.FindByEmailAsync(payload.Email);
+
+                            if (user == null)
+                            {
+                                user = await Register(payload);
+                            }
+
+                            if (!await _signInManager.CanSignInAsync(user))
+                                throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
+                            // Create a new authentication ticket and return sign in
+                            var ticket = await CreateTicketAsync(request, user);
+
+                            return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+                        }
+                        catch (InvalidJwtException)
+                        {
+                            throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
+                        }
+                        */
                     }
-                    catch (InvalidJwtException)
-                    {
-                        throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
-                    }
+
+                case CustomGrantTypes.Linkedin:
+                {
+                    throw new NotImplementedException();
+                }
                 default:
                     throw new MultiLanguageException(nameof(request.GrantType),
                         OpenIdConnectConstants.Errors.UnsupportedGrantType);
@@ -97,15 +99,16 @@ namespace ManyForMany.Controller.User
         [MvcHelper.Attributes.HttpGet(nameof(GrantTypes))]
         public string[] GrantTypes()
         {
+            //throw new NotImplementedException();
             return CustomGrantTypes.All.ToArray();
         }
 
+        #region HelpersJWT
 
-
-        #region Helpers
 
         private async Task<AuthenticationTicket> CreateTicketAsync(OpenIdConnectRequest request, ApplicationUser user)
         {
+            //throw new NotImplementedException();
             // Create a new ClaimsPrincipal containing the claims that
             // will be used to create an id_token, a token or a code.
             var principal = await _signInManager.CreateUserPrincipalAsync(user);
@@ -162,8 +165,10 @@ namespace ManyForMany.Controller.User
             return ticket;
         }
 
+        /*
         private async Task<ApplicationUser> Register(GoogleJsonWebSignature.Payload payload)
         {
+            //throw new NotImplementedException();
             var user = new ApplicationUser(payload);
 
             await Register(user);
@@ -171,8 +176,11 @@ namespace ManyForMany.Controller.User
             return user;
         }
 
+        */
+
         private async Task Register(ApplicationUser user)
         {
+            throw new NotImplementedException();
             var result = await _userManager.CreateAsync(user);
 
             if (!result.Succeeded)
@@ -188,6 +196,125 @@ namespace ManyForMany.Controller.User
                 var firstError = result.Errors.FirstOrDefault();
                 throw new MultiLanguageException(firstError.Code, firstError.Description);
             }
+        }
+
+        #endregion
+
+        #region ExternalLogin
+
+        //
+        // POST: /Account/LogOff
+        [HttpPost(nameof(LogOff))]
+        public async Task LogOff()
+        {
+            await _signInManager.SignOutAsync();
+        }
+
+        [AllowAnonymous]
+        [Produces("application/json")]
+        [HttpGet(nameof(ExternalProviders))]
+        public async Task<string[]> ExternalProviders()
+        {
+            var elements = (await _signInManager.GetExternalAuthenticationSchemesAsync()).Select(x => x.Name).ToArray();
+
+            return elements;
+        }
+
+        //
+        // Get: /Account/ExternalLogin
+        [MvcHelper.Attributes.HttpGet(nameof(ExternalLogin), "{provider}")]
+        [AllowAnonymous]
+        public IActionResult ExternalLogin(
+            string provider,
+            [FromQuery] string returnUrl = null)
+        {
+            // Request a redirect to the external login provider.
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback),
+                nameof(AuthorizationController).Replace(nameof(Controller), string.Empty), new { ReturnUrl = returnUrl });
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            return new ChallengeResult(provider, properties);
+        }
+
+        //
+        // GET: /Account/ExternalLoginCallback
+        [HttpGet(nameof(ExternalLoginCallback))]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null)
+        {
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null)
+            {
+                return LocalRedirect(returnUrl);
+            }
+
+            // Sign in the user with this external login provider if the user already has a login.
+            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, false);
+            if (result.Succeeded)
+            {
+                return LocalRedirect(returnUrl);
+            }
+
+            if (result.RequiresTwoFactor)
+            {
+                return LocalRedirect(returnUrl);
+            }
+
+            if (result.IsLockedOut)
+            {
+            }
+            else
+            {
+                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                var name = info.Principal.FindFirstValue(ClaimTypes.GivenName);
+                var surrname = info.Principal.FindFirstValue(ClaimTypes.Surname);
+                var id = info.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+                await ExternalLoginConfirmation(new CreateUserViewModel
+                {
+                    Email = email ,
+                    Name = name,
+                    Surrname = surrname,
+                    Id = id
+                });
+            }
+
+            return LocalRedirect(returnUrl ?? string.Empty);
+        }
+
+        //
+        // POST: /Account/ExternalLoginConfirmation
+        [HttpPost(nameof(ExternalLoginConfirmation))]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task ExternalLoginConfirmation(CreateUserViewModel model, string returnUrl = null)
+        {
+            if (ModelState.IsValid)
+            {
+                // Get the information about the user from the external login provider
+                var info = await _signInManager.GetExternalLoginInfoAsync();
+                if (info == null)
+                {
+                    return;
+                }
+
+                var user = new ApplicationUser(model);
+
+                var result = await _userManager.CreateAsync(user);
+                if (result.Succeeded)
+                {
+                    result = await _userManager.AddLoginAsync(user, info);
+                    if (result.Succeeded)
+                    {
+                        await _signInManager.SignInAsync(user, false);
+                        return;
+                    }
+                }
+
+                AddErrors(result);
+            }
+        }
+        private void AddErrors(IdentityResult result)
+        {
+            foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
         }
 
         #endregion

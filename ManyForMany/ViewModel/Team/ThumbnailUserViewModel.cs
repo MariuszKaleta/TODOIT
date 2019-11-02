@@ -1,7 +1,8 @@
-﻿namespace ManyForMany.Models.Entity.User
+﻿namespace TODOIT.ViewModel.Team
 {
     public class ThumbnailUserViewModel
     {
+        /*
         public ThumbnailUserViewModel(ApplicationUser user)
         {
             Id = user.Id;
@@ -14,5 +15,6 @@
         public string FirstName { get; set; }
 
         public string Picture { get; private set; }
+        */
     }
 }

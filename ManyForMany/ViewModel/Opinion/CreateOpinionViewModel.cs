@@ -1,7 +1,9 @@
-﻿namespace ManyForMany.ViewModel.Opinion
+﻿using System;
+
+namespace TODOIT.ViewModel.Opinion
 {
     public class CreateOpinionViewModel : OpinionViewModel
     {
-        public string OrderId { get; private set; }
+        public Guid OrderId { get; set; }
     }
 }

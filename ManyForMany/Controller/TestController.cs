@@ -1,33 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using ManyForMany.Controller.User;
-using ManyForMany.Models.Configuration;
-using ManyForMany.Models.Entity;
-using ManyForMany.Models.Entity.User;
-using ManyForMany.Models.File;
-using ManyForMany.ViewModel;
-using ManyForMany.ViewModel.Order;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using MultiLanguage.Exception;
-using MvcHelper.Entity;
 
-namespace ManyForMany.Controller
+namespace TODOIT.Controller
 {
     [AllowAnonymous]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class TestController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public TestController(ILogger<TestController> logger, Context context, UserManager<ApplicationUser> userManager)
+        /*
+        public TestController(Context context, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
-            _logger = logger;
             _context = context;
 
             UserId = _context.Users.First().Id;
@@ -35,17 +19,16 @@ namespace ManyForMany.Controller
 
         #region Properties
 
-        private string UserId;
+        private Guid UserId;
 
         public UserManager<ApplicationUser> UserManager { get; }
         private ILogger _logger;
         private readonly Context _context;
 
-        private readonly OrderFileManager _orderFileManager = new OrderFileManager();
 
         #endregion
 
-        /*
+        
         #region API
 
         #region Get

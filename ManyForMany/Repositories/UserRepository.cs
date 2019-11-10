@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MvcHelper.Entity;
+using TODOIT.Model.Configuration;
 using TODOIT.Model.Entity;
 using TODOIT.Model.Entity.Order;
 using TODOIT.Model.Entity.Skill;
@@ -22,30 +24,67 @@ namespace TODOIT.Repositories
             _context = context;
         }
 
-        public async Task<ApplicationUser> Get(string id)
+        public async Task<ApplicationUser> Get(string id, params Expression<Func<ApplicationUser, object>>[] navigationPropertyPaths)
         {
-            //throw new NotImplementedException();
-            return await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
+            IQueryable<ApplicationUser> opinions = _context.Users;
+
+            foreach (var path in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(path);
+            }
+
+            return await Get(opinions, id);
         }
 
-        public async Task<ApplicationUser[]> Get(IEnumerable<string> ids)
+        private static async Task<ApplicationUser> Get(IQueryable<ApplicationUser> orders, string id)
         {
-            //  throw new NotImplementedException();
-            return await _context.Users.Where(x => ids.Contains(x.Id)).ToArrayAsync();
+            var order = await orders
+                .FirstOrDefaultAsync(x => x.Name == id);
+
+            if (order == null)
+            {
+                throw new Exception(Errors.UserIsNotExist);
+            }
+
+            return order;
         }
 
-        public async Task<ApplicationUser[]> Get(string name = null, int? start = null, int? count = null)
+
+        public async Task<ApplicationUser[]> Get(IEnumerable<string> ids, params Expression<Func<ApplicationUser, object>>[] navigationPropertyPaths)
+        {
+            IQueryable<ApplicationUser> opinions = _context.Users;
+
+            foreach (var path in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(path);
+            }
+
+            var skills = await opinions
+                .Where(x => ids.Contains(x.Id)).ToArrayAsync();
+
+            if (skills.Length != ids.Count())
+            {
+                throw new Exception();
+            }
+
+            return skills;
+        }
+
+        public async Task<ApplicationUser[]> Get( string name = null, int? start = null, int? count = null, params Expression<Func<ApplicationUser, object>>[] navigationPropertyPaths)
         {
             // throw new NotImplementedException();
             IQueryable<ApplicationUser> users = _context.Users;
+
+            foreach (var path in navigationPropertyPaths)
+            {
+                users = users.Include(path);
+            }
 
             if (!string.IsNullOrEmpty(name))
             {
                 users = users.Where(x => x.Name.Contains(name));
             }
-
-
-            return users.TryTake(start, count).ToArray();
+            return await users.TryTake(start, count).ToArrayAsync();
         }
 
         public async Task<ApplicationUser> Update(ApplicationUser obj, UserViewModel model)
@@ -57,17 +96,21 @@ namespace TODOIT.Repositories
             return obj;
         }
 
-        public async Task<Skill[]> UpdateSkills(ApplicationUser obj, Skill[] model)
+        public async Task<string[]> UpdateSkills(string obj, string[] model)
         {
-            _context.HeadSkills.AddRange(model.Select(x => new HeadSkill()
+            _context.HeadSkills.AddRange(model.Select(x => new HeadSkill(obj,x)
             {
-                Skill = x,
-                User = obj
             }));
 
             await _context.SaveChangesAsync();
 
             return model;
+        }
+
+        public async Task<ApplicationUser[]> GetInvitetedUserToMakeOrder(Guid orderId)
+        {
+            return await _context.OrderMembers.Include(x => x.User).Where(x => x.OrderId == orderId).Select(x => x.User)
+                .ToArrayAsync();
         }
 
         public async Task<ILookup<Guid, ApplicationUser>> GetInterestedByOrderIds(IEnumerable<Guid> orderIds)
@@ -82,6 +125,18 @@ namespace TODOIT.Repositories
             return interestedOrders.ToLookup(x => x.Order.Id, x => x.User);
         }
 
+        public async Task<ILookup<Guid, ApplicationUser>> GetOrderMembersByOrderIds(IEnumerable<Guid> orderIds)
+        {
+            var interestedOrders = await _context.OrderMembers
+                    .Include(x => x.Order)
+                    .Include(x => x.User)
+                    .Where(x => orderIds.Contains(x.Order.Id))
+                    .ToListAsync()
+                ;
+
+            return interestedOrders.ToLookup(x => x.Order.Id, x => x.User);
+        }
+
         public void Delete(ApplicationUser obj, bool saveChanges)
         {
             _context.Users.Remove(obj);
@@ -91,5 +146,7 @@ namespace TODOIT.Repositories
                 _context.SaveChanges();
             }
         }
+
+        
     }
 }

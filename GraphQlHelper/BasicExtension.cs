@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text;
+using GraphQL.Language.AST;
 using GraphQL.Types;
 
 namespace GraphQlHelper
@@ -64,7 +66,7 @@ namespace GraphQlHelper
         }
 
 
-        public static void BaseQuerry<TQlType, TType, TId>(this IRepository<TType, TId> repository, string nameType, ObjectGraphType obj)
+        public static void BaseQuerry<TQlType, TType, TId>(this IRepository<TType, TId> repository, string nameType, ObjectGraphType obj, Func<IDictionary<string,Field>, Expression<Func<TType, object>>[]> include)
             where TType : IBaseElement<TId>
             where TQlType : IGraphType
         {
@@ -84,17 +86,17 @@ namespace GraphQlHelper
                     var star = context.GetArgument<int?>(start);
                     var coun = context.GetArgument<int?>(count);
 
-                    return repository.Get(name, star, coun);
+                    return repository.Get(name, star, coun, include.Invoke(context.SubFields));
                 });
 
             obj.Field<TQlType>(
                 nameType,
-                arguments: new QueryArguments(new QueryArgument<IntGraphType> { Name = nameof(IBaseElement.Id) }),
+                arguments: new QueryArguments(new QueryArgument<IdGraphType> { Name = nameof(IBaseElement.Id) }),
                 resolve: context =>
                 {
                     var id = context.GetArgument<TId>(nameof(IBaseElement.Id).ToLower());
 
-                    return repository.Get(id);
+                    return repository.Get(id, include.Invoke(context.SubFields));
                 });
         }
     }

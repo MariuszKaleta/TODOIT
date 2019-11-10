@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using TODOIT.Model.Entity.User;
 using TODOIT.ViewModel.Opinion;
 
@@ -12,11 +13,10 @@ namespace TODOIT.Model.Entity.Rate
 
         }
 
-        public Opinion(ApplicationUser author, Order.Order order, OpinionViewModel model)
+        public Opinion(string authorId, Guid orderId, OpinionViewModel model)
         {
-            Author = author;
-            Order = order;
-
+            AuthorId = authorId;
+            OrderId = orderId;
             this.Assign(model);
         }
 
@@ -26,8 +26,14 @@ namespace TODOIT.Model.Entity.Rate
         [Required]
         public ApplicationUser Author { get; private set; }
 
+        [ForeignKey(nameof(Author))]
+        public string AuthorId { get; private set; }
 
+        [Required]
         public Order.Order Order { get; private set; }
+
+        [ForeignKey(nameof(Order))]
+        public Guid OrderId { get; private set; }
 
         public string Comment { get; set; }
 

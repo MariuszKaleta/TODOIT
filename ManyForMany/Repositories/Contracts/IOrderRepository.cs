@@ -14,14 +14,20 @@ namespace TODOIT.Repositories.Contracts
     {
         Task<ILookup<string, Order>> GetByOwnerIds(IEnumerable<string> ownerIds);
 
-        Task AddToInterested(ApplicationUser user, Order order);
+        Task<ILookup<string, Order>> GetByInterestedOrderIds(IEnumerable<string> ownerIds);
 
-        Task AddToInterested(ApplicationUser user, IReadOnlyCollection<Order> orders);
+        Task<Order> Create(CreateOrderViewModel model, string user);
 
-        Task<Order> Create(CreateOrderViewModel model, ApplicationUser user);
+        Task<Order> Update(CreateOrderViewModel model, Guid orderId);
 
-        Task<Order> Update(CreateOrderViewModel model, Order order);
+        void Delete(Guid orderId, bool saveChanges);
 
-        void Delete(Order device, bool saveChanges, ApplicationUser user);
+        Task AddToInterested(string user, Guid orderId );
+
+        Task AddToInterested(string user, IReadOnlyCollection<Guid> orderIds);
+
+        Task UpdateRequiredSkills(Order order, IReadOnlyCollection<string> updatedSkillNames, bool saveChanges);
+
+        Task<bool> IAmOwner(Guid orderId, string userId);
     }
 }

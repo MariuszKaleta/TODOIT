@@ -30,6 +30,7 @@ namespace TODOIT.Controller.Order
         //[Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
         public async Task Create(CreateSkillViewModel model)
         {
+
             await _skillRepository.Create(model);
         }
 
@@ -43,18 +44,14 @@ namespace TODOIT.Controller.Order
         [MvcHelper.Attributes.HttpPost(nameof(Update), "skillName")]
         public async Task Update(string skillName, CreateSkillViewModel model)
         {
-            var skillAsync = _skillRepository.Get(skillName);
-
-            await _skillRepository.Update(await skillAsync, model);
+            await _skillRepository.Update(skillName, model);
         }
 
         //[Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
         [MvcHelper.Attributes.HttpPost(nameof(Remove), "skillName")]
         public async Task Remove(string skillName)
         {
-            var skillAsync = _skillRepository.Get(skillName);
-
-            _skillRepository.Delete(await skillAsync, true);
+            _skillRepository.Delete(skillName, true);
         }
     }
 }

@@ -1,20 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using TODOIT.Model.Entity.User;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace TODOIT.Model.Entity.Chat
 {
-    public abstract class Chat 
+    public class Chat
     {
-        protected Chat()
+        private Chat()
         {
 
         }
 
+
+        public Chat( Guid orderId)
+        {
+            OrderId = orderId;
+        }
+
         [Key]
-        public string Id { get; private set; }
+        public Guid Id { get; private set; }
 
+        [Required]
+        public Order.Order Order { get; private set; }
 
-        public List<ApplicationUser> Members { get; protected set; }
+        [Required]
+        [ForeignKey(nameof(Order))]
+        public Guid OrderId { get; private set; }
+
     }
 }

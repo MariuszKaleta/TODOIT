@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace GraphQlHelper
 {
-    public interface IRepository<TType, TId , in TModel> : IRepository<TType, TId>
-    where TType : IBaseElement<TId>
+    public interface IRepository<TType, in TId , in TModel> : IRepository<TType, TId>
     {
         Task<TType> Create(TModel model);
 
@@ -14,11 +15,11 @@ namespace GraphQlHelper
     }
     
     public interface IRepository<TType, in TId>
-    where TType : IBaseElement<TId>
     {
-        Task<TType> Get(TId id);
-        Task<TType[]> Get(IEnumerable<TId> ids);
+        Task<TType> Get(TId id, params Expression<Func<TType, object>>[] navigationPropertyPaths);
 
-        Task<TType[]> Get(string name = null, int? start = null, int? count = null);
+        Task<TType[]> Get(IEnumerable<TId> ids, params Expression<Func<TType, object>>[] navigationPropertyPaths);
+
+        Task<TType[]> Get(string name = null, int? start = null, int? count = null, params Expression<Func<TType, object>>[] navigationPropertyPaths);
     }
 }

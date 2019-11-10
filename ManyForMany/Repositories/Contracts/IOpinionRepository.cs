@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using TODOIT.Model.Entity.Order;
 using TODOIT.Model.Entity.Rate;
@@ -13,19 +14,19 @@ namespace TODOIT.Repositories.Contracts
 {
     public interface IOpinionRepository
     {
-        Task<Opinion> Create(OpinionViewModel model, ApplicationUser user, Order order);
+        Task<Opinion> Create(OpinionViewModel model, string userId, Order order);
 
-        Task<Opinion> Update(Opinion opinion, OpinionViewModel model);
+        Task<Opinion> Update(Guid opinionId, OpinionViewModel model);
 
-        void Delete(Opinion obj, bool saveChanges);
+        void Delete(Guid opinionId, bool saveChanges);
 
-        Task<Opinion> Get(Guid id);
+        Task<Opinion> Get(Guid id, params Expression<Func<Opinion, object>>[] navigationPropertyPaths);
 
-        Task<Opinion[]> Get(IReadOnlyCollection<Guid> ids);
+        Task<Opinion[]> Get(IReadOnlyCollection<Guid> ids, int? start = null, int? count = null, params Expression<Func<Opinion, object>>[] navigationPropertyPaths);
 
-        Task<Opinion[]> GetByAuthorId(string authorId, int? start = null, int? count = null);
+        Task<Opinion[]> Get(int? start = null, int? count = null, params Expression<Func<Opinion, object>>[] navigationPropertyPaths);
 
-        Task<Opinion[]> GetByOrderId(Guid orderId, int? start = null, int? count = null);
+        Task<bool> IAmAuthor(string userId, Guid opinionId);
 
         Task<ILookup<Guid, Opinion>> GetByOrderIds(IEnumerable<Guid> ownerIds);
 

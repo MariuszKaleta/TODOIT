@@ -8,23 +8,16 @@ namespace TODOIT
     {
         public static void Main(string[] args)
         {
-
             BuildWebHost(args).Run();
         }
 
         public static IWebHost BuildWebHost(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
-                //.UseApplicationInsights()
                 .UseConfiguration(new ConfigurationBuilder()
-                    .AddCommandLine(args)
-                    .Build())
+                .AddCommandLine(args)
+                .Build())
                 .UseStartup<Startup>()
-                //.ConfigureLogging(logging =>
-               // {
-              //      logging.ClearProviders();
-              //      logging.AddConsole();
-              //  })
                 .Build();
         }
     }

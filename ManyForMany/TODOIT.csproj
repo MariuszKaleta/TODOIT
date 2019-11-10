@@ -19,19 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Migrations\20191101195519_create.cs" />
-    <Compile Remove="Migrations\20191101195519_create.Designer.cs" />
-    <Compile Remove="Migrations\20191101195605_create1.cs" />
-    <Compile Remove="Migrations\20191101195605_create1.Designer.cs" />
-    <Compile Remove="Migrations\20191101231042_AddSkillsToOrder.cs" />
-    <Compile Remove="Migrations\20191101231042_AddSkillsToOrder.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Google.Apis.Auth" Version="1.19.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.42.0" />
     <PackageReference Include="GraphQL" Version="3.0.0-preview-1271" />
     <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="3.5.0-alpha0027" />
     <PackageReference Include="GraphQL.Server.Ui.Playground" Version="3.5.0-alpha0027" />
+    <PackageReference Include="Microsoft.AspNet.SignalR" Version="2.4.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc4" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
@@ -40,13 +32,16 @@
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="3.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="3.1.0-preview1.19508.20" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.1.0-preview1.19508.20" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="3.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="3.1.0-preview2.19528.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.1.0-preview2.19528.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="3.1.0-preview2.19528.8" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0-preview1.19506.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.0-preview1.19506.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.0-preview1.19506.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0-preview2.19525.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.0-preview2.19525.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.0-preview2.19525.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Extensions.PlatformAbstractions" Version="1.1.0" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="2.0.1" />
     <PackageReference Include="OpenIddict.Validation" Version="2.0.1" />
@@ -63,6 +58,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Model\ChatHub\" />
     <Folder Include="Properties\" />
   </ItemGroup>
 

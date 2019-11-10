@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TODOIT.Migrations
 {
-    public partial class create : Migration
+    public partial class Users : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -94,8 +94,8 @@ namespace TODOIT.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(nullable: false),
-                    ProviderKey = table.Column<string>(nullable: false),
+                    LoginProvider = table.Column<string>(maxLength: 128, nullable: false),
+                    ProviderKey = table.Column<string>(maxLength: 128, nullable: false),
                     ProviderDisplayName = table.Column<string>(nullable: true),
                     UserId = table.Column<string>(nullable: false)
                 },
@@ -139,8 +139,8 @@ namespace TODOIT.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<string>(nullable: false),
-                    LoginProvider = table.Column<string>(nullable: false),
-                    Name = table.Column<string>(nullable: false),
+                    LoginProvider = table.Column<string>(maxLength: 128, nullable: false),
+                    Name = table.Column<string>(maxLength: 128, nullable: false),
                     Value = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
@@ -152,68 +152,6 @@ namespace TODOIT.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Orders",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    Name = table.Column<string>(nullable: false),
-                    Describe = table.Column<string>(nullable: true),
-                    OwnerId = table.Column<string>(nullable: false),
-                    CreateTime = table.Column<DateTime>(nullable: false),
-                    DeadLine = table.Column<DateTime>(nullable: false),
-                    Status = table.Column<int>(nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Orders", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Orders_AspNetUsers_OwnerId",
-                        column: x => x.OwnerId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InterestedOrders",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    UserId = table.Column<string>(nullable: false),
-                    OrderId = table.Column<Guid>(nullable: false),
-                    //     ApplicationUserId = table.Column<string>(nullable: true),
-                    //    OrderId1 = table.Column<Guid>(nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InterestedOrders", x => x.Id);
-                    /*           table.ForeignKey(
-                                   name: "FK_InterestedOrders_AspNetUsers_ApplicationUserId",
-                                   column: x => x.ApplicationUserId,
-                                   principalTable: "AspNetUsers",
-                                   principalColumn: "Id");
-                      */
-                    table.ForeignKey(
-                        name: "FK_InterestedOrders_Orders_OrderId",
-                        column: x => x.OrderId,
-                        principalTable: "Orders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
-                    /* table.ForeignKey(
-                               name: "FK_InterestedOrders_Orders_OrderId1",
-                               column: x => x.OrderId1,
-                               principalTable: "Orders",
-                               principalColumn: "Id");
-                */
-                    table.ForeignKey(
-                                name: "FK_InterestedOrders_AspNetUsers_UserId",
-                                column: x => x.UserId,
-                                principalTable: "AspNetUsers",
-                                principalColumn: "Id",
-                                onDelete: ReferentialAction.NoAction);
                 });
 
             migrationBuilder.CreateIndex(
@@ -254,33 +192,6 @@ namespace TODOIT.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
-            /*
-            migrationBuilder.CreateIndex(
-                name: "IX_InterestedOrders_ApplicationUserId",
-                table: "InterestedOrders",
-                column: "ApplicationUserId");
-                
-             
-            migrationBuilder.CreateIndex(
-                name: "IX_InterestedOrders_OrderId1",
-                table: "InterestedOrders",
-                column: "OrderId1");
-             */
-            migrationBuilder.CreateIndex(
-                name: "IX_InterestedOrders_OrderId",
-                table: "InterestedOrders",
-                column: "OrderId");
-
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InterestedOrders_UserId",
-                table: "InterestedOrders",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_OwnerId",
-                table: "Orders",
-                column: "OwnerId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -301,13 +212,7 @@ namespace TODOIT.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "InterestedOrders");
-
-            migrationBuilder.DropTable(
                 name: "AspNetRoles");
-
-            migrationBuilder.DropTable(
-                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

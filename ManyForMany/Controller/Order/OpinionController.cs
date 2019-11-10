@@ -20,7 +20,7 @@ namespace TODOIT.Controller.Order
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OpinionController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public OpinionController( IOpinionRepository opinionRepository, UserManager<ApplicationUser> userManager)
+        public OpinionController(IOpinionRepository opinionRepository, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
             _opinionRepository = opinionRepository;
@@ -31,7 +31,7 @@ namespace TODOIT.Controller.Order
         public UserManager<ApplicationUser> UserManager { get; }
 
         private readonly IOpinionRepository _opinionRepository;
-        
+
 
         #endregion
 
@@ -42,51 +42,41 @@ namespace TODOIT.Controller.Order
         [MvcHelper.Attributes.HttpGet(nameof(AvailableRates))]
         public Dictionary<string, int> AvailableRates()
         {
-            return Enum.GetValues(typeof(Rate)).Cast<Rate>().ToDictionary(x => x.ToString(), x => (int) x);
+            return Enum.GetValues(typeof(Rate)).Cast<Rate>().ToDictionary(x => x.ToString(), x => (int)x);
         }
 
         /// <summary>
         /// edit existed Order
         /// </summary>
-        /// <param name="orderId"></param>
+        /// <param name="opinionId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
         [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
-        [MvcHelper.Attributes.HttpPost(nameof(Update), "orderId")]
-        public async Task Update(Guid orderId, OpinionViewModel model)
+        [MvcHelper.Attributes.HttpPost(nameof(Update), "{opinionId}")]
+        public async Task Update(Guid opinionId, OpinionViewModel model)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var userId = UserManager.GetUserId(User);
 
-            var orderAsync = _opinionRepository.Get(orderId);
-
-            var order = await orderAsync;
-            var user = await userAsync;
-
-            if (order.Author.Id != user.Id)
+            if (await _opinionRepository.IAmAuthor(userId, opinionId))
             {
                 throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            await _opinionRepository.Update(order, model);
+            await _opinionRepository.Update(opinionId, model);
         }
 
         [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
-        [MvcHelper.Attributes.HttpPost(nameof(Remove), "orderId")]
-        public async Task Remove(Guid orderId)
+        [MvcHelper.Attributes.HttpPost(nameof(Remove), "{opinionId}")]
+        public async Task Remove(Guid opinionId)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var userId = UserManager.GetUserId(User);
 
-            var orderAsync = _opinionRepository.Get(orderId);
-
-            var order = await orderAsync;
-            var user = await userAsync;
-
-            if (order.Author.Id != user.Id)
+            if (await _opinionRepository.IAmAuthor(userId, opinionId))
             {
                 throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            _opinionRepository.Delete(await orderAsync, true);
+            _opinionRepository.Delete(opinionId, true);
         }
     }
 }

@@ -1,6 +1,9 @@
 ﻿using System;
+using GraphQL.Tests.Subscription;
 using Microsoft.Extensions.DependencyInjection;
 using TODOIT.GraphQl.Queries;
+using TODOIT.Model.Entity.Chat;
+using TODOIT.Repositories.Contracts;
 
 namespace TODOIT.GraphQl.Schema
 {
@@ -9,8 +12,15 @@ namespace TODOIT.GraphQl.Schema
     {
         public AppSchema(IServiceProvider resolver) : base(resolver)
         {
-            Query = resolver.GetService<AppQuery>();
-            Mutation = resolver.GetService<AppMutation>();
+            Query = new AppQuery(
+                resolver.GetService<IOrderRepository>(),
+                resolver.GetService<IUserRepository>(),
+                resolver.GetService<ISkillRepository>(),
+                resolver.GetService<IOpinionRepository>(),
+                resolver.GetService<IChatRepository>(),
+                resolver.GetService<IMessageRepository>()
+                );
+            //Mutation = resolver.GetService<AppMutation>();
         }
     }
 }

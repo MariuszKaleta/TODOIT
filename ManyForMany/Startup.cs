@@ -4,9 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
+using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Server;
 using GraphQL.Server.Ui.Playground;
+using GraphQL.Tests.Subscription;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,11 +25,11 @@ using TODOIT.GraphQl.Queries;
 using TODOIT.GraphQl.Schema;
 using TODOIT.Model.Configuration;
 using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Chat;
 using TODOIT.Model.Entity.Skill;
 using TODOIT.Model.Entity.User;
 using TODOIT.Repositories;
 using TODOIT.Repositories.Contracts;
-using Microsoft.AspNetCore.Identity.UI;
 
 namespace TODOIT
 {
@@ -39,6 +41,8 @@ namespace TODOIT
             configuration.Bind(Config);
         }
 
+        static readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
         public Configuration Config { get; set; } = new Configuration();
 
         public void ConfigureServices(IServiceCollection services)
@@ -47,6 +51,20 @@ namespace TODOIT
                 .AddMvcCore(x => x.EnableEndpointRouting = false)
                 .AddApiExplorer()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
+                .AddCors(
+                    options =>
+                    {
+                        options.AddPolicy(MyAllowSpecificOrigins,
+                            builder =>
+                            {
+                                builder
+                                    .AllowAnyOrigin()
+                                    .AllowAnyHeader()
+                                    .AllowAnyMethod()
+                                    // .AllowCredentials()
+                                    ;
+                            });
+                    })
                 ;
 
             services.Configure<KestrelServerOptions>(options => { options.AllowSynchronousIO = true; });
@@ -57,13 +75,14 @@ namespace TODOIT
             services.AddDbContext<Context>(options =>
             {
                 options.UseSqlServer(Config.ConnectionStrings.DefaultConnection);
-                
+
                 // options.UseOpenIddict();
             }, ServiceLifetime.Transient);
 
-            services.AddDefaultIdentity<ApplicationUser>()
+            services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<Context>()
                 .AddDefaultTokenProviders();
+
 
             /*
             services.AddIdentityCore<ApplicationUser>()
@@ -125,10 +144,10 @@ namespace TODOIT
             };
 
             services
-                .AddAuthentication(x=>x.DefaultAuthenticateScheme = CustomGrantTypes.Google)
+                .AddAuthentication(x => x.DefaultAuthenticateScheme = CustomGrantTypes.Google)
                 .AddGoogle(options =>
                 {
-                    
+
                     options.ClientId = Config.Authentication.Google.ClientId;
                     options.ClientSecret = Config.Authentication.Google.ClientSecret;
                     foreach (var scope in scopes)
@@ -151,48 +170,9 @@ namespace TODOIT
                     options.ClientSecret = Config.Authentication.LinkedIn.ClientSecret;
                 });
 
-            Swagger(services);
-            GraphQl(services);
-        }
-
-        private void Swagger(IServiceCollection services)
-        {
-            //swagger
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo()
-                {
-                    Version = "v1",
-                    Title = "API",
-                    Description = "Test API with ASP.NET Core 3.0"
-                });
-
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, SwaggerHelper.XmlPath);
-                c.IncludeXmlComments(xmlPath);
-            });
-        }
-
-        public static void GraphQl(IServiceCollection services)
-        {
-            services.AddSingleton<IDataLoaderContextAccessor>(new DataLoaderContextAccessor());
-
-            services.AddScoped<IOrderRepository, OrderRepository>();
-            services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<ISkillRepository, SkillRepository>();
-
-            services.AddScoped<AppQuery>();
-            // services.AddScoped<AppMutation>();
-            //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
-            services.AddScoped<AppSchema>();
-
-            services.AddGraphQL(o =>
-                {
-                    o.ExposeExceptions = true;
-                    o.EnableMetrics = true;
-                })
-                .AddGraphTypes(ServiceLifetime.Scoped)
-                .AddDataLoader()
-                ;
+            services.Swagger();
+            services.GraphQl();
+            services.Chat();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -216,6 +196,11 @@ namespace TODOIT
              */
 
             //app.UseBrowserLink();
+
+            app.Swagger();
+            app.GraphQl();
+            app.Chat();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -230,9 +215,9 @@ namespace TODOIT
             app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseAuthentication();
-            Swagger(app);
-            GraphQl(app);
-            
+            app.UseCors(MyAllowSpecificOrigins);
+
+
             app.UseMvcWithDefaultRoute();
 
 
@@ -246,21 +231,6 @@ namespace TODOIT
             });
             */
             //InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
-        }
-
-        private void Swagger(IApplicationBuilder app)
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
-            });
-        }
-
-        private void GraphQl(IApplicationBuilder app)
-        {
-            app.UseGraphQL<AppSchema>();
-            app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
         }
 
         private async Task InitializeAsync(IServiceProvider services)
@@ -339,5 +309,86 @@ namespace TODOIT
         }
 
         */
+    }
+
+    public static class StartupExtension
+    {
+        public static void Swagger(this IServiceCollection services)
+        {
+            //swagger
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo()
+                {
+                    Version = "v1",
+                    Title = "API",
+                    Description = "Test API with ASP.NET Core 3.0"
+                });
+
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, SwaggerHelper.XmlPath);
+                c.IncludeXmlComments(xmlPath);
+            });
+        }
+
+        public static void GraphQl(this IServiceCollection services)
+        {
+            services.AddSingleton<IDataLoaderContextAccessor, DataLoaderContextAccessor>();
+            services.AddSingleton<IDocumentExecuter, EfDocumentExecuter>();
+
+            services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ISkillRepository, SkillRepository>();
+            services.AddScoped<IOpinionRepository, OpinionRepository>();
+            services.AddScoped<IChatRepository, ChatRepository>();
+            services.AddScoped<IMessageRepository, MessageRepository>();
+            
+
+            //services.AddScoped<AppQuery>();
+            // services.AddScoped<AppMutation>();
+            //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
+            services.AddScoped<AppSchema>();
+
+            services.AddGraphQL(o =>
+                {
+                    o.ExposeExceptions = true;
+                    o.EnableMetrics = true;
+                })
+                .AddGraphTypes(ServiceLifetime.Scoped)
+                .AddDataLoader()
+                ;
+        }
+
+        public static void Chat(this IServiceCollection app)
+        {
+            app.AddSignalR();
+        }
+
+        public static void Swagger(this IApplicationBuilder app)
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint(SwaggerHelper.JsonPath, "Test API V1");
+            });
+        }
+
+        public static void GraphQl(this IApplicationBuilder app)
+        {
+
+
+            app.UseGraphQL<AppSchema>();
+            app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
+
+        }
+
+        public static void Chat(this IApplicationBuilder app)
+        {
+            app.UseRouting();
+            app.UseEndpoints(x =>
+            {
+                x.MapHub<ChatHub>("/chat");
+            });
+
+        }
     }
 }

@@ -14,9 +14,13 @@ namespace TODOIT.Repositories.Contracts
     {
         Task<ApplicationUser> Update(ApplicationUser obj, UserViewModel model);
 
-        Task<Skill[]> UpdateSkills(ApplicationUser obj, Skill[] model);
+        Task<string[]> UpdateSkills(string obj, string[] model);
+
+        Task<ApplicationUser[]> GetInvitetedUserToMakeOrder(Guid orderId);
 
         Task<ILookup<Guid, ApplicationUser>> GetInterestedByOrderIds(IEnumerable<Guid> orderIds);
+
+        Task<ILookup<Guid, ApplicationUser>> GetOrderMembersByOrderIds(IEnumerable<Guid> orderIds);
 
         void Delete(ApplicationUser obj, bool saveChanges);
     }

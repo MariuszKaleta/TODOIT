@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MvcHelper.Entity;
@@ -22,61 +23,43 @@ namespace TODOIT.Repositories
             _context = context;
         }
 
-        public async Task<Skill> Create(CreateSkillViewModel model)
+        public async Task<Skill> Get(string name, params Expression<Func<Skill, object>>[] navigationPropertyPaths)
         {
-            if (_context.Skills.Any(x => x.Name == model.Name))
+            IQueryable<Skill> opinions = _context.Skills;
+
+            foreach (var path in navigationPropertyPaths)
             {
-                throw new Exception(Errors.SkillIsAlreadyExist);
+                opinions = opinions.Include(path);
             }
 
-            var skill = new Skill(model);
-
-            _context.Skills.Add(skill);
-
-            await _context.SaveChangesAsync();
-
-            return skill;
+            return await Get(opinions, name);
         }
 
-        public async Task<Skill> Update(Skill skill, CreateSkillViewModel model)
+        private static async Task<Skill> Get(IQueryable<Skill> orders, string id)
         {
-            if (_context.Skills.Any(x => x.Name == model.Name))
-            {
-                throw new Exception(Errors.SkillIsAlreadyExist);
-            }
+            var order = await orders
+                .FirstOrDefaultAsync(x => x.Name == id);
 
-            skill.Assign(model);
-
-            await _context.SaveChangesAsync();
-
-            return skill;
-        }
-
-        public void Delete(Skill obj, bool saveChanges)
-        {
-            _context.Skills.Remove(obj);
-
-            if (saveChanges)
-            {
-                _context.SaveChanges();
-            }
-        }
-
-        public async Task<Skill> Get(string name)
-        {
-            var skill = await _context.Skills.FirstOrDefaultAsync(x => x.Name == name);
-
-            if (skill == null)
+            if (order == null)
             {
                 throw new Exception(Errors.SkillIsNotExistInList);
             }
 
-            return skill;
+            return order;
         }
 
-        public async Task<Skill[]> Get(IReadOnlyCollection<string> names)
+
+        public async Task<Skill[]> Get(IReadOnlyCollection<string> names, params Expression<Func<Skill, object>>[] navigationPropertyPaths)
         {
-            var skills = await _context.Skills.Where(x => names.Any(y => y == x.Name)).ToArrayAsync();
+            IQueryable<Skill> opinions = _context.Skills;
+
+            foreach (var path in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(path);
+            }
+
+            var skills = await opinions
+                .Where(x => names.Any(y => y == x.Name)).ToArrayAsync();
 
             if (skills.Length != names.Count())
             {
@@ -85,10 +68,15 @@ namespace TODOIT.Repositories
 
             return skills;
         }
-        
-        public async Task<Skill[]> Get(string name = null, int? start = null, int? count = null)
+
+        public async Task<Skill[]> Get( string name = null, int? start = null, int? count = null, params Expression<Func<Skill, object>>[] navigationPropertyPaths)
         {
             IQueryable<Skill> skills = _context.Skills;
+
+            foreach (var path in navigationPropertyPaths)
+            {
+                skills = skills.Include(path);
+            }
 
             if (!string.IsNullOrEmpty(name))
             {
@@ -118,52 +106,54 @@ namespace TODOIT.Repositories
             return headSkills.ToLookup(x => x.User.Id, x => x.Skill);
         }
 
-        public async Task UpdateUsedSkills(Order order, IReadOnlyCollection<string> updatedSkillNames, bool saveChanges)
+        public async Task<Skill> Create(CreateSkillViewModel model)
         {
-            var actualUsedSkillsAsync = _context.UsedSkills
-                .Where(x => x.Order == order && updatedSkillNames.Contains(x.Skill.Name))
-                .ToArrayAsync();
+            if (_context.Skills.Any(x => x.Name == model.Name))
+            {
+                throw new Exception(Errors.SkillIsAlreadyExist);
+            }
 
-            var updatedSkillsAsync = Get(updatedSkillNames);
+            var skill = new Skill(model);
 
-            var actualUsedSkills = await actualUsedSkillsAsync;
-            var updatedSkills = await updatedSkillsAsync;
-
-            var addTask = AddUsedSkills(_context.UsedSkills, order, actualUsedSkills, updatedSkills);
-            var removeTask = RemoveUsedSkills(_context.UsedSkills, actualUsedSkills, updatedSkills);
-
-            await addTask;
-            await removeTask;
+            _context.Skills.Add(skill);
 
             await _context.SaveChangesAsync();
+
+            return skill;
         }
 
-        private static async Task AddUsedSkills(DbSet<ReuiredSkill> usedSkills, Order order, IReadOnlyCollection<ReuiredSkill> actualSkills, IEnumerable<Skill> updatedSkills)
+        public async Task<Skill> Update(string skillName, CreateSkillViewModel model)
         {
-            var addedSkills = updatedSkills.Where(x => actualSkills.All(y => y.Skill != x));
-            
-            await AddUsedSkills(usedSkills, order, addedSkills);
-        }
+            var skill = await Get(skillName);
 
-        private static async Task AddUsedSkills(DbSet<ReuiredSkill> context, Order order, IEnumerable<Skill> skills)
-        {
-            await context.AddRangeAsync(skills.Select(x => new ReuiredSkill()
+            if (_context.Skills.Any(x => x.Name == model.Name))
             {
-                Order = order,
-                Skill = x
-            }));
+                throw new Exception(Errors.SkillIsAlreadyExist);
+            }
+
+            skill.Assign(model);
+
+            await _context.SaveChangesAsync();
+
+            return skill;
         }
 
-        public static async Task RemoveUsedSkills(DbSet<ReuiredSkill> context, IReadOnlyCollection<ReuiredSkill> actualSkills, IReadOnlyCollection<Skill> updatedSkills)
+        public void Delete(string skillName, bool saveChanges)
         {
-            var removedSkills = actualSkills.Where(x => updatedSkills.All(y => y != x.Skill));
+            var skill = Get(skillName).Result;
 
-            await RemoveUsedSkills(context, removedSkills);
-        }
+            _context.Skills.Remove(skill);
 
-        public static async Task RemoveUsedSkills(DbSet<ReuiredSkill> context, IEnumerable<ReuiredSkill> skills)
-        {
-            context.RemoveRange(skills);
+            if (saveChanges)
+            {
+                _context.SaveChanges();
+            }
         }
+        
+
+
+        
+
+       
     }
 }

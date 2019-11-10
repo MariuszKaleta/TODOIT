@@ -6,6 +6,7 @@ using TODOIT.ViewModel.Skill;
 
 namespace TODOIT.Model.Entity.Skill
 {
+    
     public class Skill 
     {
         private Skill()
@@ -22,4 +23,6 @@ namespace TODOIT.Model.Entity.Skill
         [Required]
         public string Name { get; set; }
     }
+
+    
 }

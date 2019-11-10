@@ -8,14 +8,14 @@ using TODOIT.Model.Entity.User;
 
 namespace TODOIT.Model.Entity.Order
 {
-    public class InterestedOrder
+    public class OrderMember
     {
-        private InterestedOrder()
+        private OrderMember()
         {
 
         }
 
-        public InterestedOrder(string userId, Guid orderId)
+        public OrderMember(string userId, Guid orderId)
         {
             UserId = userId;
             OrderId = orderId;

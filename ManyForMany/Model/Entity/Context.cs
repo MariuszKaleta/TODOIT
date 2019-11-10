@@ -31,11 +31,20 @@ namespace TODOIT.Model.Entity
 
         public DbSet<Skill.Skill> Skills { get; set; }
 
-        public DbSet<ReuiredSkill> UsedSkills { get; set; }
+        public DbSet<RequiredSkill> UsedSkills { get; set; }
 
         public DbSet<HeadSkill> HeadSkills { get; set; }
-
+        
         public DbSet<Opinion> Opinions { get; set; }
+
+        public DbSet<OrderMember> OrderMembers { get; set; }
+
+        public DbSet<Chat.Chat> Chats { get; set; }
+
+        public DbSet<ChatMember> ChatMembers { get; set; }
+
+        public DbSet<Message> Messages { get; set; }
+
 
         //  public DbSet<Chat.TeamChat> TeamChats { get; set; }
 
@@ -52,22 +61,17 @@ namespace TODOIT.Model.Entity
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
+            //   optionsBuilder.EnableSensitiveDataLogging(true);
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
-            var interestedOrder = builder.Entity<InterestedOrder>();
-
-            interestedOrder
-                .HasOne<Order.Order>()
-                .WithMany()
-                .OnDelete(DeleteBehavior.NoAction);
-
-            interestedOrder
-                .HasOne<ApplicationUser>()
-                .WithMany()
-                .OnDelete(DeleteBehavior.NoAction);
-
+            //builder.Ignore<Order.Order>();
+            //builder.Ignore<InterestedOrder>();
+            //builder.Ignore<Skill.Skill>();
+            //builder.Ignore<RequiredSkill>();
+            //builder.Ignore<HeadSkill>();
+            //builder.Ignore<Opinion>();
             base.OnModelCreating(builder);
 
 

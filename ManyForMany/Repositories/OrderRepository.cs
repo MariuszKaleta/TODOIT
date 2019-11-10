@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +12,8 @@ using MvcHelper.Entity;
 using TODOIT.Model.Configuration;
 using TODOIT.Model.Entity;
 using TODOIT.Model.Entity.Order;
+using TODOIT.Model.Entity.Rate;
+using TODOIT.Model.Entity.Skill;
 using TODOIT.Model.Entity.User;
 using TODOIT.Repositories.Contracts;
 using TODOIT.ViewModel.Order;
@@ -27,13 +31,24 @@ namespace TODOIT.Repositories
             _skillRepository = skillRepository;
         }
 
-        public async Task<Order> Get(Guid id)
+        public async Task<Order> Get(Guid id, params Expression<Func<Order, object>>[] navigationPropertyPaths)
         {
-            var order = await _context.Orders
-                .Include(x => x.Owner)
+            IQueryable<Order> opinions = _context.Orders;
+
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(navigationPropertyPath);
+            }
+
+            return await Get(opinions, id);
+        }
+
+        private static async Task<Order> Get(IQueryable<Order> orders, Guid id)
+        {
+            var order = await orders
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            if(order == null)
+            if (order == null)
             {
                 throw new Exception(Errors.OrderIsNotExistInList);
             }
@@ -41,19 +56,28 @@ namespace TODOIT.Repositories
             return order;
         }
 
-        public async Task<Order[]> Get(IEnumerable<Guid> ids)
+        public async Task<Order[]> Get(IEnumerable<Guid> ids, params Expression<Func<Order, object>>[] navigationPropertyPaths)
         {
-            return await _context.Orders
-                .Include(x => x.Owner)
+            IQueryable<Order> orders = _context.Orders;
+
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
+            {
+                orders = orders.Include(navigationPropertyPath);
+            }
+
+            return await orders
                 .Where(x => ids.Contains(x.Id))
                 .ToArrayAsync();
         }
 
-        public async Task<Order[]> Get(string name = null, int? start = null, int? count = null)
+        public async Task<Order[]> Get( string name = null, int? start = null, int? count = null,params Expression<Func<Order, object>>[] navigationPropertyPaths)
         {
-            IQueryable<Order> orders = _context.Orders
-                .Include(x=>x.Owner)
-                ;
+            IQueryable<Order> orders = _context.Orders;
+
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
+            {
+                orders = orders.Include(navigationPropertyPath);
+            }
 
             if (!string.IsNullOrEmpty(name))
             {
@@ -73,19 +97,28 @@ namespace TODOIT.Repositories
             return accounts.ToLookup(x => x.Owner.Id);
         }
 
-        public async Task AddToInterested(ApplicationUser user, Order order)
+        public async Task<ILookup<string, Order>> GetByInterestedOrderIds(IEnumerable<string> ownerIds)
         {
-            Validate(order, user);
+            var orders = await _context.InterestedOrders
+                .Include(x => x.Order)
+                .Where(a => ownerIds.Contains(a.UserId))
+                .ToListAsync();
 
-            if (_context.InterestedOrders.Any(x => x.Order == order && x.User == user))
+            return orders.ToLookup(x => x.UserId, x => x.Order);
+        }
+
+        public async Task AddToInterested(string userId, Guid orderID)
+        {
+            if (_context.InterestedOrders.Any(x => x.Order.Id == orderID && x.User.Id == userId))
             {
                 throw new Exception(Errors.YouInterestedThisOrder);
             }
 
-            var interested = new InterestedOrder()
+            var order = await Get(orderID);
+            Validate(order, userId);
+
+            var interested = new InterestedOrder(userId,orderID)
             {
-                Order = order,
-                User = user
             };
 
             _context.InterestedOrders.Add(interested);
@@ -93,14 +126,9 @@ namespace TODOIT.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task AddToInterested(ApplicationUser user, IReadOnlyCollection<Order> orders)
+        public async Task AddToInterested(string user, IReadOnlyCollection<Guid> orderIds)
         {
-            foreach (var order in orders)
-            {
-                Validate(order, user);
-            }
-
-            var decisionExists = _context.InterestedOrders.Where(x => x.User == user && orders.Contains(x.Order));
+            var decisionExists = _context.InterestedOrders.Where(x => x.User.Id == user && orderIds.Contains(x.Order.Id));
 
             if (decisionExists.Any())
             {
@@ -108,63 +136,122 @@ namespace TODOIT.Repositories
                                     string.Join('\n', decisionExists.Select(x => x.Order.Id)));
             }
 
-            _context.InterestedOrders.AddRange(orders.Select(x=> new InterestedOrder()
+            foreach (var order in await Get(orderIds))
             {
-                User = user,
-                Order = x
+                Validate(order, user);
+            }
+
+            _context.InterestedOrders.AddRange(orderIds.Select(x=> new InterestedOrder(user,x)
+            {
+
             }));
 
             await _context.SaveChangesAsync();
         }
 
-        public static void Validate(Order order, ApplicationUser user)
+        
+        public static void Validate(Order order, string user)
         {
             if (order.Status != OrderStatus.CompleteTeam)
             {
                 throw new Exception(Errors.OwnerOfOrderDontLookingForTeam);
             }
 
-            if (order.Owner == user)
+            if (order.OwnerId == user)
             {
                 throw new Exception(Errors.YouCantJoinToYourOrderTeam);
             }
         }
 
-        public async Task<Order> Create(CreateOrderViewModel model, ApplicationUser user)
+        public async Task<Order> Create(CreateOrderViewModel model, string user)
         {
             var order = new Order(model, user);
 
             _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
 
-            await _skillRepository.UpdateUsedSkills(order, model.Skills, false);
+            if (model.Skills?.Any() == true)
+            {
+                await UpdateRequiredSkills(order, model.Skills, false);
+                await _context.SaveChangesAsync();
+            }
+
+            return order;
+        }
+
+        public async Task<Order> Update(CreateOrderViewModel viewModel, Guid orderID)
+        {
+            var order = await Get(orderID);
+
+            await UpdateRequiredSkills(order, viewModel.Skills, false);
+            order.Assign(viewModel);
+
             await _context.SaveChangesAsync();
 
             return order;
         }
 
-        public async Task<Order> Update(CreateOrderViewModel viewModel, Order dbDevice)
+        public async void Delete(Guid orderId, bool saveChanges)
         {
-            await _skillRepository.UpdateUsedSkills(dbDevice, viewModel.Skills, false);
-            dbDevice.Assign(viewModel);
+            var order = await Get(orderId);
 
-            await _context.SaveChangesAsync();
-
-            return dbDevice;
-        }
-
-        public async void Delete(Order device, bool saveChanges, ApplicationUser user)
-        {
-            if (device.Owner != user)
-            {
-                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
-            }
-
-            _context.Orders.Remove(device);
+            _context.Orders.Remove(order);
 
             if (saveChanges)
             {
                 await _context.SaveChangesAsync();
             }
+        }
+
+       
+
+        public async Task UpdateRequiredSkills(Order order, IReadOnlyCollection<string> updatedSkillNames, bool saveChanges)
+        {
+            var actualUsedSkillsAsync = _context.UsedSkills
+                .Where(x => x.OrderId == order.Id && updatedSkillNames.Contains(x.Skill.Name))
+                .ToArrayAsync();
+
+            //  var updatedSkillsAsync = Get(updatedSkillNames);
+
+            var actualUsedSkills = await actualUsedSkillsAsync;
+            //  var updatedSkills = await updatedSkillsAsync;
+
+            var addTask = AddUsedSkills(_context.UsedSkills, order.Id, actualUsedSkills, updatedSkillNames);
+            var removeTask = RemoveUsedSkills(_context.UsedSkills, actualUsedSkills, updatedSkillNames);
+
+            await addTask;
+            await removeTask;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> IAmOwner(Guid orderId, string userId)
+        {
+            return await _context.Orders.AnyAsync(x => x.Id == orderId && x.OwnerId == userId);
+        }
+
+        private static async Task AddUsedSkills(DbSet<RequiredSkill> usedSkills, Guid orderId, IReadOnlyCollection<RequiredSkill> actualSkills, IEnumerable<string> updatedSkills)
+        {
+            var addedSkills = updatedSkills.Where(x => actualSkills.All(y => y.Skill.Name != x));
+
+            await AddUsedSkills(usedSkills, orderId, addedSkills);
+        }
+
+        private static async Task AddUsedSkills(DbSet<RequiredSkill> context, Guid orderGuid, IEnumerable<string> skills)
+        {
+            await context.AddRangeAsync(skills.Select(x => new RequiredSkill(orderGuid, x)));
+        }
+
+        public static async Task RemoveUsedSkills(DbSet<RequiredSkill> context, IReadOnlyCollection<RequiredSkill> actualSkills, IReadOnlyCollection<string> updatedSkills)
+        {
+            var removedSkills = actualSkills.Where(x => updatedSkills.All(y => y != x.Skill.Name));
+
+            await RemoveUsedSkills(context, removedSkills);
+        }
+
+        public static async Task RemoveUsedSkills(DbSet<RequiredSkill> context, IEnumerable<RequiredSkill> skills)
+        {
+            context.RemoveRange(skills);
         }
     }
 }

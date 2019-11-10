@@ -6,34 +6,36 @@ using System.Linq;
 using System.Threading.Tasks;
 using TODOIT.Model.Entity.User;
 
-namespace TODOIT.Model.Entity.Order
+namespace TODOIT.Model.Entity.Chat
 {
-    public class InterestedOrder
+    public class ChatMember
     {
-        private InterestedOrder()
+        private ChatMember()
         {
 
         }
 
-        public InterestedOrder(string userId, Guid orderId)
+        public ChatMember(string userId, Guid chatId)
         {
             UserId = userId;
-            OrderId = orderId;
+            ChatId = chatId;
         }
 
         [Key]
         public Guid Id { get; private set; }
 
         [Required]
-        public ApplicationUser User { get; private set; }
-
         [ForeignKey(nameof(User))]
         public string UserId { get; private set; }
 
         [Required]
-        public Order Order { get; private set; }
+        public ApplicationUser User { get; private set; }
 
-        [ForeignKey(nameof(Order))]
-        public Guid OrderId { get; private set; }
+        [Required]
+        [ForeignKey(nameof(Chat))]
+        public Guid ChatId { get; private set; }
+
+        [Required]
+        public Chat Chat { get; private set; }
     }
 }

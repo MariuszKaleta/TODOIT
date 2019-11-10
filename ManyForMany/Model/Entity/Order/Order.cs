@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using GraphQlHelper;
+using TODOIT.Model.Entity.Rate;
 using TODOIT.Model.Entity.User;
 using TODOIT.ViewModel.Order;
 
@@ -14,11 +16,11 @@ namespace TODOIT.Model.Entity.Order
 
         }
 
-        public Order(OrderViewModel model, ApplicationUser owner)
+        public Order(OrderViewModel model, string ownerId)
         {
             this.Assign(model);
 
-            Owner = owner;
+            OwnerId = ownerId;
             CreateTime = DateTime.Now;
         }
 
@@ -44,39 +46,36 @@ namespace TODOIT.Model.Entity.Order
 
         public string Describe { get; set; }
 
-        [Required] public ApplicationUser Owner { get; private set; }
+        [Required] 
+        public ApplicationUser Owner { get; private set; }
 
-        //public int ProjectChatId { get; set; }
+        [ForeignKey(nameof(Owner))]
+        public string OwnerId { get; private set; }
 
-        //[Required]
+        [Required]
         public DateTime CreateTime { get; private set; }
 
         public DateTime DeadLine { get; set; }
 
-        public OrderStatus Status
-        {
-            get;
-            set;
-
-            //todo dodać do usera index obejżanych ofert zamiast listy rejected interested, zostawić tylko added elements
-
-            //  public List<ApplicationUser> RejectedByUsers { get; private set; } 
-
-            //public List<ApplicationUser> InterestedByUsers { get; private set; }
-
-            //public List<ApplicationUser> ActualTeam { get; private set; }
-
-            //public List<Category.Category> Categories { get; private set; }
-
-            //public List<Skill.Skill> RequiredSkills { get; private set; }
-
-            //public List<Skill.Skill> GoodIfHave { get; private set; }
-
-            //public List<ApplicationUser> UsersWhichCanComment { get; private set; }
+        public OrderStatus Status { get; set; }
 
 
-        }
 
+        //todo dodać do usera index obejżanych ofert zamiast listy rejected interested, zostawić tylko added elements
+
+        //  public List<ApplicationUser> RejectedByUsers { get; private set; } 
+
+        //public List<ApplicationUser> InterestedByUsers { get; private set; }
+
+        //public List<ApplicationUser> ActualTeam { get; private set; }
+
+        //public List<Category.Category> Categories { get; private set; }
+
+        //public List<Skill.Skill> RequiredSkills { get; private set; }
+
+        //public List<Skill.Skill> GoodIfHave { get; private set; }
+
+        //public List<ApplicationUser> UsersWhichCanComment { get; private set; }
 
     }
 }

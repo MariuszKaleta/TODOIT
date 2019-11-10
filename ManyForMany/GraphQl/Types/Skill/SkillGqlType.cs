@@ -9,4 +9,5 @@ namespace TODOIT.GraphQl.Types.Skill
             Field(x => x.Name, type: typeof(StringGraphType)).Description("Id property from the owner object.");
         }
     }
+
 }

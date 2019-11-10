@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MvcHelper.Entity;
@@ -23,40 +24,21 @@ namespace TODOIT.Repositories
             _context = context;
         }
 
-        public async Task<Opinion> Create(OpinionViewModel model, ApplicationUser user, Order order)
+        public async Task<Opinion> Get(Guid id, params Expression<Func<Opinion, object>>[] navigationPropertyPaths)
         {
-            var opinion = new Opinion(user, order, model);
+            IQueryable<Opinion> opinions = _context.Opinions;
 
-            _context.Opinions.Add(opinion);
-
-            await _context.SaveChangesAsync();
-
-            return opinion;
-        }
-
-        public async Task<Opinion> Update(Opinion opinion, OpinionViewModel model)
-        {
-            opinion.Assign(model);
-            await _context.SaveChangesAsync();
-
-            return opinion;
-        }
-
-        public void Delete(Opinion obj, bool saveChanges)
-        {
-            _context.Opinions.Remove(obj);
-
-            if (saveChanges)
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
             {
-                _context.SaveChanges();
+                opinions = opinions.Include(navigationPropertyPath);
             }
+
+            return await Get(opinions, id);
         }
 
-        public async Task<Opinion> Get(Guid id)
+        private static async Task<Opinion> Get(IQueryable<Opinion> opinions, Guid id)
         {
-            var opinion = await _context.Opinions
-                .Include(x => x.Author)
-                .Include(x => x.Order)
+            var opinion = await opinions
                 .FirstOrDefaultAsync(x => x.Id == id);
 
             if (opinion == null)
@@ -67,39 +49,44 @@ namespace TODOIT.Repositories
             return opinion;
         }
 
-        public async Task<Opinion[]> Get(IReadOnlyCollection<Guid> ids)
+        public async Task<Opinion[]> Get(IReadOnlyCollection<Guid> ids, int? start = null, int? count = null, params Expression<Func<Opinion, object>>[] navigationPropertyPaths)
         {
-            return await _context.Opinions
-                    .Include(x => x.Author)
-                    .Include(x => x.Order)
+            IQueryable<Opinion> opinions = _context.Opinions;
+
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(navigationPropertyPath);
+            }
+
+            return await opinions
                 .Where(x => ids.Contains(x.Id))
-                .ToArrayAsync();
-        }
-
-        public async Task<Opinion[]> GetByAuthorId(string authorId, int? start = null, int? count = null)
-        {
-            return await _context.Opinions
-                .Include(x => x.Author)
-                .Include(x => x.Order)
-                .Where(x => x.Author.Id == authorId)
-                .TryTake(start,count)
-                .ToArrayAsync();
-        }
-
-        public async Task<Opinion[]> GetByOrderId(Guid orderId, int? start = null, int? count = null)
-        {
-            return await _context.Opinions
-                .Include(x => x.Author)
-                .Include(x => x.Order)
-                .Where(x => x.Order.Id == orderId)
                 .TryTake(start, count)
                 .ToArrayAsync();
+        }
+
+        public async Task<Opinion[]> Get(int? start = null, int? count = null, params Expression<Func<Opinion, object>>[] navigationPropertyPaths)
+        {
+            IQueryable<Opinion> opinions = _context.Opinions;
+
+            foreach (var navigationPropertyPath in navigationPropertyPaths)
+            {
+                opinions = opinions.Include(navigationPropertyPath);
+            }
+
+            return await opinions
+                .TryTake(start, count)
+                .ToArrayAsync();
+        }
+
+        public async Task<bool> IAmAuthor(string userId, Guid opinionId)
+        {
+            return await _context.Opinions.AnyAsync(x => x.Id == opinionId && x.AuthorId == userId);
         }
 
         public async Task<ILookup<Guid, Opinion>> GetByOrderIds(IEnumerable<Guid> ownerIds)
         {
             var accounts = await _context.Opinions
-                .Include(x => x.Author)
+                //  .Include(x => x.Author)
                 .Include(x => x.Order)
                 .Where(a => ownerIds.Contains(a.Order.Id)).ToListAsync();
 
@@ -110,10 +97,49 @@ namespace TODOIT.Repositories
         {
             var accounts = await _context.Opinions
                 .Include(x => x.Author)
-                .Include(x => x.Order)
+                //.Include(x => x.Order)
                 .Where(a => authorIds.Contains(a.Author.Id)).ToListAsync();
 
             return accounts.ToLookup(x => x.Author.Id);
+        }
+
+        public async Task<Opinion> Create(OpinionViewModel model, string userId, Order order)
+        {
+            if (order.Owner.Id == userId)
+            {
+                throw new Exception(Errors.YouCantCommentyourOrder);
+            }
+
+            var opinion = new Opinion(userId, order.Id, model);
+
+            //order.Opinions.Add(opinion);
+            _context.Opinions.Add(opinion);
+
+            await _context.SaveChangesAsync();
+
+            return opinion;
+        }
+
+        public async Task<Opinion> Update(Guid opinionId, OpinionViewModel model)
+        {
+            var opinion = await Get(opinionId);
+
+            opinion.Assign(model);
+            await _context.SaveChangesAsync();
+
+            return opinion;
+        }
+
+        public void Delete(Guid opinionId, bool saveChanges)
+        {
+            var opinion = Get(opinionId).Result;
+
+            _context.Opinions.Remove(opinion);
+
+            if (saveChanges)
+            {
+                _context.SaveChanges();
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TODOIT.Migrations
 {
-    public partial class usedSkills : Migration
+    public partial class RequiredSkills : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -12,8 +12,8 @@ namespace TODOIT.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(nullable: false),
-                    OrderId = table.Column<Guid>(nullable: true),
-                    SkillName = table.Column<string>(nullable: true)
+                    OrderId = table.Column<Guid>(nullable: false),
+                    SkillName = table.Column<string>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -23,13 +23,13 @@ namespace TODOIT.Migrations
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UsedSkills_Skills_SkillName",
                         column: x => x.SkillName,
                         principalTable: "Skills",
                         principalColumn: "Name",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(

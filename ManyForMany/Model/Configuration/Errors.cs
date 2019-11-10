@@ -15,6 +15,7 @@
         public const string OrderDoseNotExistOrIsNotBelongToYou = "Order Dose Not Exist Or Is Not Belong To You";
         public const string OwnerOfOrderDontLookingForTeam = "Owner of order dont looking for team";
         public const string YouCantJoinToYourOrderTeam = "You Cant Join To Your Order Team";
+        public const string YouCantCommentyourOrder = "You Cant Comment your Order";
 
 
         public const string SkillIsAlreadyExist = "Skill Is Already Exist";

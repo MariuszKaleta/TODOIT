@@ -61,10 +61,10 @@ namespace TODOIT.Controller.User
         [MvcHelper.Attributes.HttpPost(nameof(Skills), nameof(Update))]
         public async Task Skills(string[] skills)
         {
-            var userAsync = _userManager.GetUserAsync(User);
-            var skillAsync = _skillRepository.Get(skills);
+            var user = _userManager.GetUserId(User);
+           // var skillAsync = _skillRepository.Get(skills);
 
-            await _userRepository.UpdateSkills(await userAsync, await skillAsync);
+            await _userRepository.UpdateSkills(user, skills);
         }
 
         /*

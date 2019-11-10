@@ -23,11 +23,13 @@ namespace TODOIT.Controller.Order
     public class OrderController : Microsoft.AspNetCore.Mvc.Controller
     {
 
-        public OrderController(UserManager<ApplicationUser> userManager, IOrderRepository orderRepository, IOpinionRepository opinionRepository)
+        public OrderController(UserManager<ApplicationUser> userManager, IOrderRepository orderRepository, IOpinionRepository opinionRepository, IOrderMembersRepository orderMembersRepository, IChatRepository chatRepository)
         {
             UserManager = userManager;
             _orderRepository = orderRepository;
             _opinionRepository = opinionRepository;
+            _orderMembersRepository = orderMembersRepository;
+            _chatRepository = chatRepository;
         }
 
         #region Properties
@@ -35,6 +37,8 @@ namespace TODOIT.Controller.Order
         private readonly UserManager<ApplicationUser> UserManager;
         private readonly IOrderRepository _orderRepository;
         private readonly IOpinionRepository _opinionRepository;
+        private readonly IOrderMembersRepository _orderMembersRepository;
+        private readonly IChatRepository _chatRepository;
 
         #endregion
 
@@ -51,10 +55,9 @@ namespace TODOIT.Controller.Order
         [MvcHelper.Attributes.HttpPost(nameof(AddToInterested), "{orderId}")]
         public async Task AddToInterested(Guid orderId)
         {
-            var userAsync = UserManager.GetUserAsync(User);
-            var orderAsync = _orderRepository.Get(orderId);
+            var user = UserManager.GetUserId(User);
 
-            await _orderRepository.AddToInterested(await userAsync, await orderAsync);
+            await _orderRepository.AddToInterested( user, orderId);
         }
 
         /// <summary>
@@ -67,11 +70,10 @@ namespace TODOIT.Controller.Order
         [MvcHelper.Attributes.HttpPost(nameof(AddToInterested))]
         public async Task AddToInterested(Guid[] ids)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var user = UserManager.GetUserId(User);
 
-            var ordersAsync = _orderRepository.Get(ids);
-
-            await _orderRepository.AddToInterested(await userAsync, await ordersAsync);
+            
+            await _orderRepository.AddToInterested(user, ids);
         }
 
         /// <summary>
@@ -83,9 +85,11 @@ namespace TODOIT.Controller.Order
         [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
         public async Task Create(CreateOrderViewModel model)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var user = UserManager.GetUserId(User);
+            
+            var order = await _orderRepository.Create(model,  user);
 
-            await _orderRepository.Create(model, await userAsync);
+            await _chatRepository.Create(order.Id);
         }
 
         /// <summary>
@@ -98,38 +102,28 @@ namespace TODOIT.Controller.Order
         [MvcHelper.Attributes.HttpPost("orderId", nameof(Update))]
         public async Task Update(Guid orderId, CreateOrderViewModel model)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var userAsync = UserManager.GetUserId(User);
 
-            var orderAsync = _orderRepository.Get(orderId);
-
-            var order = await orderAsync;
-            var user = await userAsync;
-
-            if (order.Owner.Id != user.Id)
+            if (!await _orderRepository.IAmOwner(orderId, userAsync))
             {
                 throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            await _orderRepository.Update(model, order);
+            await _orderRepository.Update(model, orderId);
         }
 
         [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
         [MvcHelper.Attributes.HttpPost("orderId", nameof(Remove))]
         public async Task Remove(Guid orderId)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var userId = UserManager.GetUserId(User);
 
-            var orderAsync = _orderRepository.Get(orderId);
-
-            var order = await orderAsync;
-            var user = await userAsync;
-
-            if (order.Owner.Id != user.Id)
+            if (!await _orderRepository.IAmOwner(orderId, userId))
             {
                 throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
             }
 
-            _orderRepository.Delete(await orderAsync, true, await userAsync);
+            _orderRepository.Delete(orderId, true);
         }
 
         /// <summary>
@@ -137,15 +131,58 @@ namespace TODOIT.Controller.Order
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [MvcHelper.Attributes.HttpPost("orderId", nameof(Opinion) , nameof(Create))]
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Opinion), nameof(Create))]
         [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
-        public async Task Create(Guid orderId, OpinionViewModel model)
+        public async Task Create([FromRoute] Guid orderId, OpinionViewModel model)
         {
-            var userAsync = UserManager.GetUserAsync(User);
+            var orderAsync = _orderRepository.Get(orderId, x => x.Owner);
 
-            var orderAsync = _orderRepository.Get(orderId);
+            var userId = UserManager.GetUserId(User);
 
-            await _opinionRepository.Create(model, await userAsync, await orderAsync);
+            var order = await orderAsync;
+            
+            await _opinionRepository.Create(model, userId, order);
+        }
+
+        /// <summary>
+        /// Invite User to Order Task
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(User), nameof(Invite))]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        public async Task Invite([FromRoute] Guid orderId, string[] usersId)
+        {
+            var yourUserId = UserManager.GetUserId(User);
+
+            if (! await _orderRepository.IAmOwner(orderId, yourUserId))
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+
+            var chat = await _chatRepository.GetByOrderId(orderId);
+
+           await  _chatRepository.AddUserToChat(chat.Id, false, usersId);
+
+            await _orderMembersRepository.InviteUserToMakeOrder(usersId, orderId);
+        }
+
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(User), nameof(Invite))]
+        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        public async Task KickOff([FromRoute] Guid orderId, string[] usersId)
+        {
+            var yourUserId = UserManager.GetUserId(User);
+
+            if (!await _orderRepository.IAmOwner(orderId, yourUserId))
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+
+            var chat = await _chatRepository.GetByOrderId(orderId);
+
+            await _chatRepository.AddUserToChat(chat.Id, false, usersId);
+
+            await _orderMembersRepository.InviteUserToMakeOrder(usersId, orderId);
         }
 
         #endregion

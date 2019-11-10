@@ -10,8 +10,8 @@ using TODOIT.Model.Entity;
 namespace TODOIT.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20191102102133_usedSkills")]
-    partial class usedSkills
+    [Migration("20191103143710_Users")]
+    partial class Users
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -99,10 +99,12 @@ namespace TODOIT.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasMaxLength(128);
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasMaxLength(128);
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -139,10 +141,12 @@ namespace TODOIT.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasMaxLength(128);
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasMaxLength(128);
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -150,102 +154,6 @@ namespace TODOIT.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens");
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Order.InterestedOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("OrderId1")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationUserId");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("OrderId1");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("InterestedOrders");
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Order.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreateTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DeadLine")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Describe")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Skill.Skill", b =>
-                {
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Name");
-
-                    b.ToTable("Skills");
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Skill.UsedSkill", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SkillName")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("SkillName");
-
-                    b.ToTable("UsedSkills");
                 });
 
             modelBuilder.Entity("TODOIT.Model.Entity.User.ApplicationUser", b =>
@@ -368,51 +276,6 @@ namespace TODOIT.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Order.InterestedOrder", b =>
-                {
-                    b.HasOne("TODOIT.Model.Entity.User.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("TODOIT.Model.Entity.Order.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TODOIT.Model.Entity.Order.Order", null)
-                        .WithMany()
-                        .HasForeignKey("OrderId1")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("TODOIT.Model.Entity.User.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Order.Order", b =>
-                {
-                    b.HasOne("TODOIT.Model.Entity.User.ApplicationUser", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TODOIT.Model.Entity.Skill.UsedSkill", b =>
-                {
-                    b.HasOne("TODOIT.Model.Entity.Order.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId");
-
-                    b.HasOne("TODOIT.Model.Entity.Skill.Skill", "Skill")
-                        .WithMany()
-                        .HasForeignKey("SkillName");
                 });
 #pragma warning restore 612, 618
         }

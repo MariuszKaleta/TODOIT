@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Threading.Tasks;
+using GraphQL.Tests.Subscription;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using TODOIT.Model.Entity;
+using TODOIT.Model.Entity.Chat;
 using TODOIT.Model.Entity.User;
 
 namespace TODOIT.Controller.Chat
@@ -14,35 +17,28 @@ namespace TODOIT.Controller.Chat
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class ChatController : Microsoft.AspNetCore.Mvc.Controller
     {
-        public ChatController( Context context, UserManager<ApplicationUser> userManager)
-        {
-            UserManager = userManager;
-            _context = context;
-        }
-
-        #region Properties
-
-        public UserManager<ApplicationUser> UserManager { get; }
-        private ILogger<ChatController> _logger;
-        private readonly Context _context;
-
-        #endregion
-
+    
         /*
+      [MvcHelper.Attributes.HttpPost(nameof(SendMessage))]
+      public void SendMessage(string messageText)
+      {
+          var message = new Message(messageText)
+          {
+              Content = messageText
+          };
 
-        [MvcHelper.Attributes.HttpGet("{chatId}", nameof(Messages))]
-        public async Task<Message[]> Messages(string chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
-        {
-            var userId = UserManager.GetUserId(User);
+          _chat.AddMessage(message);
+      }
 
-            return _context.Messages
-                .Where(x => x.Chat.Id == chatId && x.Chat.Members.Any(y => y.Id == userId))
-                .Filter(searchText, y => y.Text)
-                .TryTake(start, count)
-                .ToArray();
-        }
 
-    */
+      [MvcHelper.Attributes.HttpGet("{chatId}", nameof(Messages))]
+      public async Task<Message[]> Create(string chatId, [FromQuery] string searchText, [FromQuery] int? start, [FromQuery]  int? count)
+      {
+          var receivedMessage = context.GetArgument<ReceivedMessage>("message");
+          var message = chat.AddMessage(receivedMessage);
+      }
+      */
+
 
         #region Group
 

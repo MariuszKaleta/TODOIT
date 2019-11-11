@@ -15,10 +15,14 @@ namespace TODOIT.Model.Entity.User
 
         }
 
-        public ApplicationUser(CreateUserViewModel model)
+        public ApplicationUser(ExternalLoginViewModel model) : this((UserViewModel)model)
+        {
+            Id = model.Id;
+        }
+
+        public ApplicationUser(UserViewModel model)
         {
             this.Assign(model);
-            Id = model.Id;
         }
 
         /*

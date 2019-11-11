@@ -27,7 +27,7 @@ namespace TODOIT.Controller.Order
         /// <param name="model"></param>
         /// <returns></returns>
         [MvcHelper.Attributes.HttpPost(nameof(Create))]
-        //[Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        //[Authorize()]
         public async Task Create(CreateSkillViewModel model)
         {
 
@@ -40,14 +40,14 @@ namespace TODOIT.Controller.Order
         /// <param name="skillId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
-        //[Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        //[Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Update), "skillName")]
         public async Task Update(string skillName, CreateSkillViewModel model)
         {
             await _skillRepository.Update(skillName, model);
         }
 
-        //[Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        //[Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Remove), "skillName")]
         public async Task Remove(string skillName)
         {

@@ -2,9 +2,15 @@
 
 namespace TODOIT.ViewModel.User
 {
-    public class CreateUserViewModel : UserViewModel
+    public class ExternalLoginViewModel : UserViewModel
     {
         public string Id { get; set; }
+    }
+
+    public class PasswordViewModel : UserViewModel
+    {
+        [Required]
+        public string Password { get; set; }
     }
 
     public class UserViewModel

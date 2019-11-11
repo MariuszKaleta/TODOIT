@@ -42,7 +42,7 @@ namespace TODOIT.Controller.User
         /// <param name="orderId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Update))]
         public async Task Update(UserViewModel model)
         {
@@ -57,7 +57,7 @@ namespace TODOIT.Controller.User
         /// <param name="orderId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Skills), nameof(Update))]
         public async Task Skills(string[] skills)
         {
@@ -67,8 +67,15 @@ namespace TODOIT.Controller.User
             await _userRepository.UpdateSkills(user, skills);
         }
 
+        [Authorize]
+        [MvcHelper.Attributes.HttpGet(nameof(Test))]
+        public async Task<ApplicationUser> Test()
+        {
+            return await _userManager.GetUserAsync(User);
+        }
+
         /*
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Remove))]
         public async Task Remove(Guid orderId)
         {

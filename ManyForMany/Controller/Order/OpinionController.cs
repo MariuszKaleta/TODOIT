@@ -51,7 +51,7 @@ namespace TODOIT.Controller.Order
         /// <param name="opinionId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Update), "{opinionId}")]
         public async Task Update(Guid opinionId, OpinionViewModel model)
         {
@@ -65,7 +65,7 @@ namespace TODOIT.Controller.Order
             await _opinionRepository.Update(opinionId, model);
         }
 
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(Remove), "{opinionId}")]
         public async Task Remove(Guid opinionId)
         {

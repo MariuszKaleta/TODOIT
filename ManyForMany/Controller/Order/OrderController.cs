@@ -51,7 +51,7 @@ namespace TODOIT.Controller.Order
         /// <param name="decision"></param>
         /// <returns></returns>
         //[Authorize]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(AddToInterested), "{orderId}")]
         public async Task AddToInterested(Guid orderId)
         {
@@ -66,12 +66,11 @@ namespace TODOIT.Controller.Order
         /// <param name="elements"></param>
         /// <returns></returns>
         //[Authorize]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost(nameof(AddToInterested))]
         public async Task AddToInterested(Guid[] ids)
         {
             var user = UserManager.GetUserId(User);
-
             
             await _orderRepository.AddToInterested(user, ids);
         }
@@ -82,7 +81,7 @@ namespace TODOIT.Controller.Order
         /// <param name="model"></param>
         /// <returns></returns>
         [MvcHelper.Attributes.HttpPost(nameof(Create))]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         public async Task Create(CreateOrderViewModel model)
         {
             var user = UserManager.GetUserId(User);
@@ -98,7 +97,7 @@ namespace TODOIT.Controller.Order
         /// <param name="orderId"></param>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost("orderId", nameof(Update))]
         public async Task Update(Guid orderId, CreateOrderViewModel model)
         {
@@ -112,7 +111,7 @@ namespace TODOIT.Controller.Order
             await _orderRepository.Update(model, orderId);
         }
 
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         [MvcHelper.Attributes.HttpPost("orderId", nameof(Remove))]
         public async Task Remove(Guid orderId)
         {
@@ -132,7 +131,7 @@ namespace TODOIT.Controller.Order
         /// <param name="model"></param>
         /// <returns></returns>
         [MvcHelper.Attributes.HttpPost("{orderId}", nameof(Opinion), nameof(Create))]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         public async Task Create([FromRoute] Guid orderId, OpinionViewModel model)
         {
             var orderAsync = _orderRepository.Get(orderId, x => x.Owner);
@@ -150,7 +149,7 @@ namespace TODOIT.Controller.Order
         /// <param name="model"></param>
         /// <returns></returns>
         [MvcHelper.Attributes.HttpPost("{orderId}", nameof(User), nameof(Invite))]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [Authorize()]
         public async Task Invite([FromRoute] Guid orderId, string[] usersId)
         {
             var yourUserId = UserManager.GetUserId(User);
@@ -167,8 +166,8 @@ namespace TODOIT.Controller.Order
             await _orderMembersRepository.InviteUserToMakeOrder(usersId, orderId);
         }
 
-        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(User), nameof(Invite))]
-        [Authorize(AuthenticationSchemes = CustomGrantTypes.Google)]
+        [MvcHelper.Attributes.HttpPost("{orderId}", nameof(User), nameof(KickOff))]
+        [Authorize()]
         public async Task KickOff([FromRoute] Guid orderId, string[] usersId)
         {
             var yourUserId = UserManager.GetUserId(User);

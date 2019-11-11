@@ -22,7 +22,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GenericHelper", "..\Hellper
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ResultFile", "ResultFile", "{D8BBE451-9888-4E3C-9847-337E28F3B510}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphQlHelper", "GraphQlHelper\GraphQlHelper.csproj", "{F714ADD9-A199-4B11-BE20-23368731DFF1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GraphQlHelper", "GraphQlHelper\GraphQlHelper.csproj", "{F714ADD9-A199-4B11-BE20-23368731DFF1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TODOTest", "TODOTest\TODOTest.csproj", "{D60FCEB5-52BE-406F-BC7E-E663532623F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,6 +56,10 @@ Global
 		{F714ADD9-A199-4B11-BE20-23368731DFF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F714ADD9-A199-4B11-BE20-23368731DFF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F714ADD9-A199-4B11-BE20-23368731DFF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

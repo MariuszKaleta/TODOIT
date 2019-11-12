@@ -54,6 +54,7 @@
     <ProjectReference Include="..\..\HellperDll\GenericHelper\GenericHelper.csproj" />
     <ProjectReference Include="..\..\HellperDll\MultiLanguage\MultiLanguage.csproj" />
     <ProjectReference Include="..\..\HellperDll\MvcHelper\MvcHelper.csproj" />
+    <ProjectReference Include="..\..\Sample\authorization-\src\GraphQL.Authorization\GraphQL.Authorization.csproj" />
     <ProjectReference Include="..\GraphQlHelper\GraphQlHelper.csproj" />
   </ItemGroup>
 

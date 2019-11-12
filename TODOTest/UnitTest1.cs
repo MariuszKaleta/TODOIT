@@ -15,13 +15,13 @@ namespace TODOTest
     [TestClass]
     public class UnitTest1
     {
+        public const string email = "admin@example.com", password = "Admin1!";
+
 
         [TestMethod]
         public async Task MainAsync()
         {
             var client = new HttpClient();
-
-            const string email = "admin@example.com", password = "Admin1!";
 
             //await CreateAccountAsync(client, email, password);
 
@@ -37,6 +37,43 @@ namespace TODOTest
                 Assert.Fail();
             }
 
+        }
+
+        [TestMethod]
+        public async Task graphQlTest()
+        {
+            var httpClient = new HttpClient();
+
+            var queryObject = new
+            {
+                query = @"query { 
+                opinions { 
+                comment
+                }
+            }",
+                variables = new { }
+            };
+
+            var request = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri("http://localhost:58130/Api/GraphQL/graphql"),
+                Content = new StringContent(JsonConvert.SerializeObject(queryObject), Encoding.UTF8, "application/json")
+            };
+
+            var token = await GetTokenAsync(httpClient, email, password);
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            dynamic responseObj;
+
+            using (var response = await httpClient.SendAsync(request))
+            {
+                response.EnsureSuccessStatusCode();
+
+                var responseString = await response.Content.ReadAsStringAsync();
+                responseObj = JsonConvert.DeserializeObject<dynamic>(responseString);
+            }
         }
 
         public static async Task CreateAccountAsync(HttpClient client, string email, string password)

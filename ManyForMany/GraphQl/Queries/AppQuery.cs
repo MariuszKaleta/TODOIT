@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using GraphQL.Authorization;
 using GraphQL.Language.AST;
 using GraphQL.Tests.Subscription;
 using GraphQL.Types;
@@ -135,8 +136,8 @@ namespace TODOIT.GraphQl.Queries
             obj.Field<ListGraphType<OpinionGQLType>>(
                 nameType + "s",
                 arguments: new QueryArguments(
-                    new QueryArgument<IntGraphType> { Name = start },
-                    new QueryArgument<IntGraphType> { Name = count }
+                    new QueryArgument<IntGraphType> {Name = start},
+                    new QueryArgument<IntGraphType> {Name = count}
                 ),
                 resolve: context =>
                 {
@@ -144,7 +145,7 @@ namespace TODOIT.GraphQl.Queries
                     var coun = context.GetArgument<int?>(count);
 
                     return repository.Get(star, coun, include.Invoke(context.SubFields));
-                });
+                }).AuthorizeWith(Startup.MyAllowSpecificOrigins);
 
             obj.Field<OpinionGQLType>(
                 nameType,

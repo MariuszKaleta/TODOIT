@@ -2,20 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
 using GraphQL;
+using GraphQL.Authorization;
 using GraphQL.DataLoader;
+using GraphQL.Execution;
+using GraphQL.Language.AST;
 using GraphQL.Server;
+using GraphQL.Server.Transports.AspNetCore;
 using GraphQL.Server.Ui.Playground;
 using GraphQL.Tests.Subscription;
+using GraphQL.Types;
+using GraphQL.Validation;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Abstractions;
@@ -58,12 +67,12 @@ namespace TODOIT
                         options.AddPolicy(MyAllowSpecificOrigins,
                             builder =>
                             {
+
                                 builder
                                     .AllowAnyOrigin()
                                     .AllowAnyHeader()
                                     .AllowAnyMethod()
                                     ;
-                                
                             });
                     })
                 ;
@@ -133,6 +142,7 @@ namespace TODOIT
             app.UseAuthentication();
             app.UseCors(MyAllowSpecificOrigins);
 
+            //app.UseGraphQLWithAuth();
 
             app.UseMvcWithDefaultRoute();
 
@@ -257,8 +267,8 @@ namespace TODOIT
             services.AddScoped<IOpinionRepository, OpinionRepository>();
             services.AddScoped<IChatRepository, ChatRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
-            
 
+            services.AddScoped<OwnResolveContext>();
             //services.AddScoped<AppQuery>();
             // services.AddScoped<AppMutation>();
             //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
@@ -272,6 +282,18 @@ namespace TODOIT
                 .AddGraphTypes(ServiceLifetime.Scoped)
                 .AddDataLoader()
                 ;
+
+            services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.TryAddSingleton<IAuthorizationEvaluator, AuthorizationEvaluator>();
+            services.AddTransient<IValidationRule, AuthorizationValidationRule>();
+            services.TryAddSingleton(s =>
+            {
+                var authSettings = new AuthorizationSettings();
+
+               authSettings.AddPolicy(Startup.MyAllowSpecificOrigins, _ => _.RequireClaim(OpenIdConnectConstants.Claims.Name));
+
+                return authSettings;
+            });
         }
 
         public static void Chat(this IServiceCollection app)
@@ -289,34 +311,46 @@ namespace TODOIT
 
             
             services
-                 .AddAuthentication(x=>x.DefaultAuthenticateScheme = OpenIddictValidationDefaults.AuthenticationScheme)
-         /*     .AddGoogle(options =>
+                 .AddAuthentication(x=>
                  {
-
-                     options.ClientId =  Config.Authentication.Google.ClientId;
-                     options.ClientSecret = Config.Authentication.Google.ClientSecret;
-                     foreach (var scope in scopes)
-                     {
-                         options.Scope.Add(scope);
-                     }
+                     
+                     x.DefaultAuthenticateScheme = OpenIddictValidationDefaults.AuthenticationScheme;
+                     
                  })
-                 .AddFacebook(options =>
-                 {
-                     options.ClientId = Config.Authentication.Facebook.AppId;
-                     options.ClientSecret = Config.Authentication.Facebook.AppSecret;
-                     foreach (var scope in scopes)
-                     {
-                         options.Scope.Add(scope);
-                     }
-                 })
-                 .AddLinkedIn(options =>
-                 {
-                     options.ClientId = Config.Authentication.LinkedIn.ClientId;
-                     options.ClientSecret = Config.Authentication.LinkedIn.ClientSecret;
-                 })
-            .AddOAuthValidation()*/
+                 /*     .AddGoogle(options =>
+                         {
+        
+                             options.ClientId =  Config.Authentication.Google.ClientId;
+                             options.ClientSecret = Config.Authentication.Google.ClientSecret;
+                             foreach (var scope in scopes)
+                             {
+                                 options.Scope.Add(scope);
+                             }
+                         })
+                         .AddFacebook(options =>
+                         {
+                             options.ClientId = Config.Authentication.Facebook.AppId;
+                             options.ClientSecret = Config.Authentication.Facebook.AppSecret;
+                             foreach (var scope in scopes)
+                             {
+                                 options.Scope.Add(scope);
+                             }
+                         })
+                         .AddLinkedIn(options =>
+                         {
+                             options.ClientId = Config.Authentication.LinkedIn.ClientId;
+                             options.ClientSecret = Config.Authentication.LinkedIn.ClientSecret;
+                         })
+                    .AddOAuthValidation()*/
                  ;
-            
+
+            services.AddAuthorization(x =>
+            {
+                var policy = x.GetPolicy(Startup.MyAllowSpecificOrigins);
+                x.DefaultPolicy = policy;
+            });
+
+
         }
 
         public static void Swagger(this IApplicationBuilder app)
@@ -330,7 +364,6 @@ namespace TODOIT
 
         public static void GraphQl(this IApplicationBuilder app)
         {
-
 
             app.UseGraphQL<AppSchema>();
             app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
@@ -346,9 +379,6 @@ namespace TODOIT
             });
 
         }
-
-
-
 
         public static async Task InitializeRolesAsync(this IServiceProvider services)
         {
@@ -398,6 +428,18 @@ namespace TODOIT
                 //CreateSkills(context);
             }
 
+        }
+    }
+
+
+    public class OwnResolveContext : ResolveFieldContext<object>
+    {
+        public OwnResolveContext()
+        {
+        }
+
+        public OwnResolveContext(ResolveFieldContext context) : base(context)
+        {
         }
     }
 }

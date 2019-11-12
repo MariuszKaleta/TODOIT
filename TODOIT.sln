@@ -26,8 +26,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GraphQlHelper", "GraphQlHel
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TODOTest", "TODOTest\TODOTest.csproj", "{D60FCEB5-52BE-406F-BC7E-E663532623F0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GraphQL.Authorization", "..\Sample\authorization-\src\GraphQL.Authorization\GraphQL.Authorization.csproj", "{2C8EA067-ED6B-4C1E-8CA1-57581235B2C0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -62,10 +60,6 @@ Global
 		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D60FCEB5-52BE-406F-BC7E-E663532623F0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2C8EA067-ED6B-4C1E-8CA1-57581235B2C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2C8EA067-ED6B-4C1E-8CA1-57581235B2C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2C8EA067-ED6B-4C1E-8CA1-57581235B2C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2C8EA067-ED6B-4C1E-8CA1-57581235B2C0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

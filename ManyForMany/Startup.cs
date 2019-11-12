@@ -2,15 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using AspNet.Security.OpenIdConnect.Primitives;
 using GraphQL;
-using GraphQL.Authorization;
 using GraphQL.DataLoader;
 using GraphQL.Execution;
+using GraphQL.Http;
 using GraphQL.Language.AST;
 using GraphQL.Server;
+using GraphQL.Server.Internal;
 using GraphQL.Server.Transports.AspNetCore;
 using GraphQL.Server.Ui.Playground;
 using GraphQL.Tests.Subscription;
@@ -26,7 +28,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using OpenIddict.Abstractions;
 using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
@@ -136,29 +140,16 @@ namespace TODOIT
                 app.UseHsts();
             }
 
-            // app.UseWelcomePage();
             app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseCors(MyAllowSpecificOrigins);
-
-            //app.UseGraphQLWithAuth();
-
             app.UseMvcWithDefaultRoute();
 
-
-            /*
-            app.UseSignalR(routes =>
-            {
-                routes.MapHub<ChatHub>($"{MvcHelper.AttributeHelper.AddressPathSeparator}{nameof(ChatHub)}",
-                    x => { });
-            });
-            */
-            //InitializeAsync(app.ApplicationServices).GetAwaiter().GetResult();
             await app.ApplicationServices.InitializeRolesAsync();
         }
 
-       
+
         /*
         private async Task CreateSkills(Context context)
         {
@@ -268,32 +259,13 @@ namespace TODOIT
             services.AddScoped<IChatRepository, ChatRepository>();
             services.AddScoped<IMessageRepository, MessageRepository>();
 
-            services.AddScoped<OwnResolveContext>();
+            //services.AddScoped<OwnResolveContext>();
             //services.AddScoped<AppQuery>();
             // services.AddScoped<AppMutation>();
             //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
             services.AddScoped<AppSchema>();
 
-            services.AddGraphQL(o =>
-                {
-                    o.ExposeExceptions = true;
-                    o.EnableMetrics = true;
-                })
-                .AddGraphTypes(ServiceLifetime.Scoped)
-                .AddDataLoader()
-                ;
-
-            services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.TryAddSingleton<IAuthorizationEvaluator, AuthorizationEvaluator>();
-            services.AddTransient<IValidationRule, AuthorizationValidationRule>();
-            services.TryAddSingleton(s =>
-            {
-                var authSettings = new AuthorizationSettings();
-
-               authSettings.AddPolicy(Startup.MyAllowSpecificOrigins, _ => _.RequireClaim(OpenIdConnectConstants.Claims.Name));
-
-                return authSettings;
-            });
+            services.AddGraphTypes(ServiceLifetime.Transient);
         }
 
         public static void Chat(this IServiceCollection app)
@@ -309,13 +281,13 @@ namespace TODOIT
                 //OpenIddictConstants.Scopes.Phone
             };
 
-            
+
             services
-                 .AddAuthentication(x=>
+                 .AddAuthentication(x =>
                  {
-                     
+
                      x.DefaultAuthenticateScheme = OpenIddictValidationDefaults.AuthenticationScheme;
-                     
+
                  })
                  /*     .AddGoogle(options =>
                          {
@@ -349,8 +321,6 @@ namespace TODOIT
                 var policy = x.GetPolicy(Startup.MyAllowSpecificOrigins);
                 x.DefaultPolicy = policy;
             });
-
-
         }
 
         public static void Swagger(this IApplicationBuilder app)
@@ -364,10 +334,8 @@ namespace TODOIT
 
         public static void GraphQl(this IApplicationBuilder app)
         {
-
-            app.UseGraphQL<AppSchema>();
+            //app.UseGraphQL<AppSchema>();
             app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
-
         }
 
         public static void Chat(this IApplicationBuilder app)
@@ -377,7 +345,23 @@ namespace TODOIT
             {
                 x.MapHub<ChatHub>("/chat");
             });
+        }
 
+        public static IServiceCollection AddGraphTypes(
+            this IServiceCollection builder,
+            ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
+        {
+            return AddGraphTypes(builder, Assembly.GetCallingAssembly(), serviceLifetime);
+        }
+
+        public static IServiceCollection AddGraphTypes(
+            this IServiceCollection builder,
+            Assembly assembly,
+            ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
+        {
+            foreach (var type in assembly.GetTypes().Where(x => !x.IsAbstract && typeof(IGraphType).IsAssignableFrom(x)))
+                builder.TryAdd(new ServiceDescriptor(type, type, serviceLifetime));
+            return builder;
         }
 
         public static async Task InitializeRolesAsync(this IServiceProvider services)
@@ -428,18 +412,6 @@ namespace TODOIT
                 //CreateSkills(context);
             }
 
-        }
-    }
-
-
-    public class OwnResolveContext : ResolveFieldContext<object>
-    {
-        public OwnResolveContext()
-        {
-        }
-
-        public OwnResolveContext(ResolveFieldContext context) : base(context)
-        {
         }
     }
 }

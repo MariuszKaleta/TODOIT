@@ -3,59 +3,57 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
+using GraphQL.DataLoader;
 using GraphQL.Types;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using TODOIT.GraphQl.Queries;
+using TODOIT.GraphQl.Schema;
 using TODOIT.Model.Entity;
 using TODOIT.Repositories;
 using TODOIT.Repositories.Contracts;
+using Microsoft.Extensions.DependencyInjection;
+using TODOIT.Model.Configuration;
 
 namespace TODOIT.Controller
 {
-    [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
-
     [ApiController]
     public class GraphQLController : Microsoft.AspNetCore.Mvc.Controller
     {
-        private readonly IOrderRepository _orderRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly ISkillRepository _skillRepository;
-        private readonly IOpinionRepository _opinionRepository;
-        private readonly IChatRepository _chatRepository;
-        private readonly IMessageRepository _messageRepository;
+        private readonly IServiceProvider _serviceProvider;
 
-        public GraphQLController(IOrderRepository orderRepository, IUserRepository userRepository, ISkillRepository skillRepository, IOpinionRepository opinionRepository, IChatRepository chatRepository, IMessageRepository messageRepository)
+
+        public GraphQLController(IServiceProvider serviceProvider)
         {
-            _orderRepository = orderRepository;
-            _userRepository = userRepository;
-            _skillRepository = skillRepository;
-            _opinionRepository = opinionRepository;
-            _chatRepository = chatRepository;
-            _messageRepository = messageRepository;
+            _serviceProvider = serviceProvider;
+
         }
 
-        [MvcHelper.Attributes.HttpPost("graphql")]
+        //[Authorize]
+        [MvcHelper.Attributes.HttpPost(AuthorizationHelper.AbsolutePath + "/graphql")]
         public async Task<IActionResult> Post([FromBody] GraphQLQuery query)
         {
             var inputs = query.Variables.ToInputs();
 
-            var schema = new Schema()
-            {
-                Query = new AppQuery(_orderRepository, _userRepository, _skillRepository, _opinionRepository, _chatRepository, _messageRepository)
-            };
+            var schema = new AppSchema(_serviceProvider);
 
-            var result = await new EfDocumentExecuter().ExecuteAsync(_ =>
+            var executor = _serviceProvider.GetService<IDocumentExecuter>();
+
+            var userContext = User.Claims.ToDictionary(x => x.Type, x => (object) x.Value);
+
+            var result = await executor.ExecuteAsync(_ =>
             {
                 _.Schema = schema;
                 _.Query = query.Query;
                 _.OperationName = query.OperationName;
                 _.Inputs = inputs;
+                _.UserContext = userContext;
             });
 
             if (result.Errors?.Count > 0)
             {
-                return BadRequest();
+                return BadRequest(result.Errors);
             }
 
             return Ok(result);
@@ -65,7 +63,6 @@ namespace TODOIT.Controller
     public class GraphQLQuery
     {
         public string OperationName { get; set; }
-        public string NamedQuery { get; set; }
         public string Query { get; set; }
         public JObject Variables { get; set; }
     }

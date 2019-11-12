@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using TODOIT.Controller;
 using TODOIT.ViewModel.User;
 
 namespace TODOTest
@@ -44,20 +46,21 @@ namespace TODOTest
         {
             var httpClient = new HttpClient();
 
-            var queryObject = new
+
+            var queryObject = new GraphQLQuery()
             {
-                query = @"query { 
+                Query = @"query { 
                 opinions { 
                 comment
                 }
             }",
-                variables = new { }
+                Variables = new JObject()
             };
 
             var request = new HttpRequestMessage
             {
                 Method = HttpMethod.Post,
-                RequestUri = new Uri("http://localhost:58130/Api/GraphQL/graphql"),
+                RequestUri = new Uri("http://localhost:58130/graphql"),
                 Content = new StringContent(JsonConvert.SerializeObject(queryObject), Encoding.UTF8, "application/json")
             };
 
@@ -69,7 +72,7 @@ namespace TODOTest
 
             using (var response = await httpClient.SendAsync(request))
             {
-                response.EnsureSuccessStatusCode();
+                //response.EnsureSuccessStatusCode();
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 responseObj = JsonConvert.DeserializeObject<dynamic>(responseString);

@@ -32,16 +32,13 @@ namespace TODOIT.Controller.User
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class AuthorizationController : Microsoft.AspNetCore.Mvc.ControllerBase
     {
-        private readonly IOptions<IdentityOptions> _identityOptions;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
 
         public AuthorizationController(
-            IOptions<IdentityOptions> identityOptions,
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager)
         {
-            _identityOptions = identityOptions;
             _signInManager = signInManager;
             _userManager = userManager;
         }
@@ -50,11 +47,6 @@ namespace TODOIT.Controller.User
         [Produces(Produces.Json)]
         public async Task<IActionResult> Exchange([ModelBinder(typeof(OpenIddictMvcBinder))] OpenIdConnectRequest request)
         {
-            if (request.IsPasswordGrantType())
-            {
-                return await Password(request);
-            }
-
             //throw new NotImplementedException();
             switch (request.GrantType)
             {
@@ -77,6 +69,10 @@ namespace TODOIT.Controller.User
                         throw new NotImplementedException();
                     }
 
+                case CustomGrantTypes.Facebook:
+                {
+                    throw new NotImplementedException();
+                }
 
                 default:
                     throw new MultiLanguageException(nameof(request.GrantType),
@@ -92,121 +88,9 @@ namespace TODOIT.Controller.User
             return CustomGrantTypes.All.ToArray();
         }
 
-        #region HelpersJWT
-        /*
-
-       private async Task<AuthenticationTicket> CreateTicketAsync(OpenIdConnectRequest request, ApplicationUser user)
-       {
-           //throw new NotImplementedException();
-           // Create a new ClaimsPrincipal containing the claims that
-           // will be used to create an id_token, a token or a code.
-           var principal = await _signInManager.CreateUserPrincipalAsync(user);
-
-           // Create a new authentication ticket holding the user identity.
-           var ticket = new AuthenticationTicket(principal,
-               new AuthenticationProperties(),
-               OpenIddictServerDefaults.AuthenticationScheme);
-
-           // Set the list of scopes granted to the client application.
-           ticket.SetScopes(new[]
-           {
-                               OpenIddictConstants.Scopes.Email,
-               OpenIddictConstants.Scopes.OfflineAccess,
-               OpenIddictConstants.Scopes.OpenId,
-               OpenIddictConstants.Scopes.Address,
-               OpenIddictConstants.Scopes.Phone,
-               OpenIddictConstants.Scopes.Profile,
-               OpenIddictConstants.Scopes.Roles,
-
-           }.Intersect(request.GetScopes()));
-
-           ticket.SetResources("resource-server");
-
-           // Note: by default, claims are NOT automatically included in the access and identity tokens.
-           // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
-           // whether they should be included in access tokens, in identity tokens or in both.
-
-           foreach (var claim in ticket.Principal.Claims)
-           {
-               // Never include the security stamp in the access and identity tokens, as it's a secret value.
-               if (claim.Type == _identityOptions.Value.ClaimsIdentity.SecurityStampClaimType)
-               {
-                   continue;
-               }
-
-               var destinations = new List<string>
-               {
-                   OpenIdConnectConstants.Destinations.AccessToken
-               };
-
-               // Only add the iterated claim to the id_token if the corresponding scope was granted to the client application.
-               // The other claims will only be added to the access_token, which is encrypted when using the default format.
-               if ((claim.Type == OpenIdConnectConstants.Claims.Name && ticket.HasScope(OpenIdConnectConstants.Scopes.Profile)) ||
-                   (claim.Type == OpenIdConnectConstants.Claims.Email && ticket.HasScope(OpenIdConnectConstants.Scopes.Email)) ||
-                   (claim.Type == OpenIdConnectConstants.Claims.Role && ticket.HasScope(OpenIddictConstants.Claims.Roles)))
-               {
-                   destinations.Add(OpenIdConnectConstants.Destinations.IdentityToken);
-               }
-
-               claim.SetDestinations(destinations);
-           }
-
-           return ticket;
-       }
-
-
-       private async Task<ApplicationUser> Register(GoogleJsonWebSignature.Payload payload)
-       {
-           //throw new NotImplementedException();
-           var user = new ApplicationUser(payload);
-
-           await Register(user);
-
-           return user;
-       }
-
-       */
-
-
-
-        #endregion
-
         #region PasswordTemp
 
-        private async Task<IActionResult> Password(OpenIdConnectRequest request)
-        {
-            var user = await _userManager.FindByNameAsync(request.Username);
-            if (user == null)
-            {
-                var properties = new AuthenticationProperties(new Dictionary<string, string>
-                {
-                    [OpenIdConnectConstants.Properties.Error] = OpenIdConnectConstants.Errors.InvalidGrant,
-                    [OpenIdConnectConstants.Properties.ErrorDescription] = "The username/password couple is invalid."
-                });
-
-                return Forbid(properties, OpenIddictServerDefaults.AuthenticationScheme);
-            }
-
-            // Validate the username/password parameters and ensure the account is not locked out.
-            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-            if (!result.Succeeded)
-            {
-                var properties = new AuthenticationProperties(new Dictionary<string, string>
-                {
-                    [OpenIdConnectConstants.Properties.Error] = OpenIdConnectConstants.Errors.InvalidGrant,
-                    [OpenIdConnectConstants.Properties.ErrorDescription] = "The username/password couple is invalid."
-                });
-
-                return Forbid(properties, OpenIddictServerDefaults.AuthenticationScheme);
-            }
-
-            // Create a new ClaimsPrincipal containing the claims that
-            // will be used to create an id_token, a token or a code.
-            var principal = await _signInManager.CreateUserPrincipalAsync(user);
-
-            return await this.CreateTicketAsync(principal, request);
-        }
-      
+        /*
         [Obsolete]
         [AllowAnonymous]
         [MvcHelper.Attributes.HttpPost(nameof(Register))]
@@ -214,18 +98,13 @@ namespace TODOIT.Controller.User
         {
             await _userManager.Register(model);
         }
+        */
 
         #endregion
 
         #region ExternalLogin
-
-        //
-        // POST: /Account/LogOff
-        [HttpPost(nameof(LogOff))]
-        public async Task LogOff()
-        {
-            await _signInManager.SignOutAsync();
-        }
+            
+        /*
 
         [AllowAnonymous]
         [Produces("application/json")]
@@ -333,12 +212,24 @@ namespace TODOIT.Controller.User
             }
         }
 
+
         private void AddErrors(IdentityResult result)
         {
             foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
         }
 
+       
+        */
+
         #endregion
+
+        //
+        // POST: /Account/LogOff
+        [HttpPost(nameof(LogOff))]
+        public async Task LogOff()
+        {
+            await _signInManager.SignOutAsync();
+        }
     }
 
     public static class AuthorizationExtension
@@ -364,8 +255,7 @@ namespace TODOIT.Controller.User
 
             return user;
         }
-
-
+        
         private static async Task Register(this UserManager<ApplicationUser> userManager, ApplicationUser user, IdentityResult result)
         {
 
@@ -384,6 +274,41 @@ namespace TODOIT.Controller.User
             }
         }
 
+        public static async Task<IActionResult> Password(this ControllerBase controller  , UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, OpenIdConnectRequest request)
+        {
+            var user = await userManager.FindByNameAsync(request.Username);
+            if (user == null)
+            {
+                var properties = new AuthenticationProperties(new Dictionary<string, string>
+                {
+                    [OpenIdConnectConstants.Properties.Error] = OpenIdConnectConstants.Errors.InvalidGrant,
+                    [OpenIdConnectConstants.Properties.ErrorDescription] = "The username/password couple is invalid."
+                });
+
+                return controller.Forbid(properties, OpenIddictServerDefaults.AuthenticationScheme);
+            }
+
+            // Validate the username/password parameters and ensure the account is not locked out.
+            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+
+            if (!result.Succeeded)
+            {
+                var properties = new AuthenticationProperties(new Dictionary<string, string>
+                {
+                    [OpenIdConnectConstants.Properties.Error] = OpenIdConnectConstants.Errors.InvalidGrant,
+                    [OpenIdConnectConstants.Properties.ErrorDescription] = "The username/password couple is invalid."
+                });
+
+                return controller.Forbid(properties, OpenIddictServerDefaults.AuthenticationScheme);
+            }
+
+            // Create a new ClaimsPrincipal containing the claims that
+            // will be used to create an id_token, a token or a code.
+            var principal = await signInManager.CreateUserPrincipalAsync(user);
+
+            return await controller.CreateTicketAsync(principal, request);
+        }
+        
         #region token
 
         public static async Task<IActionResult> CreateTicketAsync(this ControllerBase controller, SignInManager<ApplicationUser> signInManager, ApplicationUser user, OpenIdConnectRequest request)
@@ -395,6 +320,7 @@ namespace TODOIT.Controller.User
             return await controller.CreateTicketAsync(principal, request);
 
         }
+       
         public static async Task<IActionResult> CreateTicketAsync(this ControllerBase controller, ClaimsPrincipal principal, OpenIdConnectRequest request)
         {
             // Create a new authentication ticket holding the user identity.

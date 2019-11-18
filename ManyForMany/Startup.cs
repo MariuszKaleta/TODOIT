@@ -94,7 +94,7 @@ namespace TODOIT
                 options.UseSqlServer(Config.ConnectionStrings.DefaultConnection);
 
                 options.UseOpenIddict();
-            }, ServiceLifetime.Transient,ServiceLifetime.Transient);
+            }, ServiceLifetime.Transient, ServiceLifetime.Transient);
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<Context>()
@@ -181,13 +181,7 @@ namespace TODOIT
                     // Enable the token endpoint.
                     options.EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint);
 
-                    //options.IgnoreGrantTypePermissions();
-                    options.AllowCustomFlow(CustomGrantTypes.Google);
-                    options.AllowCustomFlow(CustomGrantTypes.Linkedin);
-                    options.AllowCustomFlow(CustomGrantTypes.Facebook);
-
-                    // Enable the password flow.
-                    //options.AllowPasswordFlow();
+                    options.AddCustomGrantTypes();
 
                     // Accept anonymous clients (i.e clients that don't send a client_id).
                     options.AcceptAnonymousClients();
@@ -195,13 +189,6 @@ namespace TODOIT
                     // During development, you can disable the HTTPS requirement.
                     options.DisableHttpsRequirement();
 
-                    
-
-                    // Note: to use JWT access tokens instead of the default
-                    // encrypted format, the following lines are required:
-                    //
-                    // options.UseJsonWebTokens();
-                    // options.AddEphemeralSigningKey();
                 })
 
                 // Register the OpenIddict validation handler.
@@ -242,7 +229,7 @@ namespace TODOIT
             services.AddTransient<ISchema, AppSchema>();
 
             services.AddSingleton<AppSchema>();
-            
+
             services
                 .AddGraphQL()
                 .AddUserContextBuilder(ctx =>
@@ -256,8 +243,8 @@ namespace TODOIT
 
                     return null;
                 })
-                
-                .AddGraphQLAuthorization(x=>
+
+                .AddGraphQLAuthorization(x =>
                 {
                     x.AddPolicy(Startup.MyAllowSpecificOrigins, x =>
                     {
@@ -266,10 +253,10 @@ namespace TODOIT
                         x.RequireClaim(OpenIddictConstants.Claims.Subject);
                     });
                 })
-                
+
                 .AddDataLoader()
                 .AddGraphTypes(ServiceLifetime.Transient)
-                
+
                 ;
 
         }
@@ -396,42 +383,6 @@ namespace TODOIT
                     await roleManager.CreateAsync(new IdentityRole(role));
                 }
             }
-        }
-
-        public static async Task InitializeClientAsync(this IServiceProvider services, Configuration Config)
-        {
-            // Create a new service scope to ensure the database context is correctly disposed when this methods returns.
-            using (var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope())
-            {
-                var context = scope.ServiceProvider.GetRequiredService<Context>();
-                await context.Database.EnsureCreatedAsync();
-
-                var manager = scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictApplication>>();
-
-                var clientId = Config.ClientId;
-                var client = await manager.FindByClientIdAsync(clientId);
-
-                if (client == null)
-                {
-                    var descriptor = new OpenIddictApplicationDescriptor
-                    {
-                        ClientId = clientId,
-                        Permissions =
-                        {
-                            OpenIddictConstants.Permissions.Endpoints.Token,
-
-                            OpenIddictConstants.Permissions.Scopes.Email,
-                            OpenIddictConstants.Permissions.Scopes.Roles,
-
-                            CustomGrantTypes.Google.ToPermission()
-                        },
-                    };
-
-                    await manager.CreateAsync(descriptor);
-                }
-                //CreateSkills(context);
-            }
-
         }
     }
 }

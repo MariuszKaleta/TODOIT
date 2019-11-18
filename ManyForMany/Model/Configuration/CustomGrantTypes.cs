@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 
 namespace TODOIT.Model.Configuration
@@ -8,6 +9,14 @@ namespace TODOIT.Model.Configuration
         public static string ToPermission(this string grantType)
         {
             return $"{OpenIddictConstants.Permissions.Prefixes.GrantType}{grantType}";
+        }
+
+        public static void AddCustomGrantTypes(this OpenIddictServerBuilder builder)
+        {
+            foreach (var grantType in All)
+            {
+                builder.AllowCustomFlow(grantType);
+            }
         }
 
         public const string Google = nameof(Google);

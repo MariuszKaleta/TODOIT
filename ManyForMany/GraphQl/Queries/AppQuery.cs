@@ -49,8 +49,6 @@ namespace TODOIT.GraphQl.Queries
 
             Opinions(opinionRepository, nameof(Opinion), this, x =>
             {
-                
-
                 var list = new List<Expression<Func<Opinion, object>>>();
 
                 if (x.ContainsKey(nameof(Opinion.Order).ToLower()))

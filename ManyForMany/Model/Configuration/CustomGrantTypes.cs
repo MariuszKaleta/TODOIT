@@ -12,6 +12,7 @@ namespace TODOIT.Model.Configuration
 
         public const string Google = nameof(Google);
         public const string Linkedin = nameof(Linkedin);
+        public const string Facebook = nameof(Facebook);
         /*
         public static void AddCustomGrantTypes(this OpenIddictServerBuilder options)
         {
@@ -27,6 +28,7 @@ namespace TODOIT.Model.Configuration
             {
                 yield return Google;
                 yield return Linkedin;
+                yield return Facebook;
             }
         }
     }

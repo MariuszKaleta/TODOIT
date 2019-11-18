@@ -1,10 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TODOIT.Repositories.Contracts;
 using TODOIT.ViewModel.Skill;
 
 namespace TODOIT.Controller.Order
 {
+    [Obsolete]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class SkillController : Microsoft.AspNetCore.Mvc.Controller
@@ -30,7 +32,6 @@ namespace TODOIT.Controller.Order
         //[Authorize()]
         public async Task Create(CreateSkillViewModel model)
         {
-
             await _skillRepository.Create(model);
         }
 

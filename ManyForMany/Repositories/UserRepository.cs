@@ -87,18 +87,24 @@ namespace TODOIT.Repositories
             return await users.TryTake(start, count).ToArrayAsync();
         }
 
-        public async Task<ApplicationUser> Update(ApplicationUser obj, UserViewModel model)
+        public async Task<ApplicationUser> Update(string userId, UserViewModel model)
         {
-            obj.Assign(model);
+            var updateSkillTask = UpdateSkills(userId, model.Skills); 
 
+            var user = await Get(userId);
+
+            user.Assign(model);
+
+
+            await updateSkillTask;
             await _context.SaveChangesAsync();
 
-            return obj;
+            return user;
         }
 
-        public async Task<string[]> UpdateSkills(string obj, string[] model)
+        public async Task<string[]> UpdateSkills(string userId, string[] model)
         {
-            _context.HeadSkills.AddRange(model.Select(x => new HeadSkill(obj,x)
+            _context.HeadSkills.AddRange(model.Select(x => new HeadSkill(userId,x)
             {
             }));
 

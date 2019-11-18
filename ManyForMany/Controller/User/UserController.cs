@@ -12,7 +12,7 @@ using TODOIT.ViewModel.User;
 
 namespace TODOIT.Controller.User
 {
-
+    [Obsolete]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class UserController : Microsoft.AspNetCore.Mvc.Controller
@@ -46,9 +46,9 @@ namespace TODOIT.Controller.User
         [MvcHelper.Attributes.HttpPost(nameof(Update))]
         public async Task Update(UserViewModel model)
         {
-            var userAsync = _userManager.GetUserAsync(User);
+            var userAsync = _userManager.GetUserId(User);
 
-            await _userRepository.Update(await userAsync, model);
+            await _userRepository.Update(userAsync, model);
         }
 
         /// <summary>

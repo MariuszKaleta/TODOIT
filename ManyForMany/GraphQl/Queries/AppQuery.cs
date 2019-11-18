@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using GraphQL.Language.AST;
+using GraphQL.Server.Authorization.AspNetCore;
 using GraphQL.Tests.Subscription;
 using GraphQL.Types;
 using GraphQlHelper;
+using OpenIddict.Validation;
 using TODOIT.GraphQl.Types.Chat;
 using TODOIT.GraphQl.Types.Opinion;
 using TODOIT.GraphQl.Types.Order;
@@ -37,10 +39,8 @@ namespace TODOIT.GraphQl.Queries
                 return list.ToArray();
             });
 
-            userRepository.BaseQuerry<UserGqlType, ApplicationUser, string>("User", this, fields =>
-                {
-                    return Enumerable.Empty<Expression<Func<ApplicationUser, object>>>().ToArray();
-                });
+            Users(userRepository, this,
+                fields => { return Enumerable.Empty<Expression<Func<ApplicationUser, object>>>().ToArray(); });
 
             Skills(skillRepository, nameof(Skill), this, fields =>
             {
@@ -49,6 +49,8 @@ namespace TODOIT.GraphQl.Queries
 
             Opinions(opinionRepository, nameof(Opinion), this, x =>
             {
+                
+
                 var list = new List<Expression<Func<Opinion, object>>>();
 
                 if (x.ContainsKey(nameof(Opinion.Order).ToLower()))
@@ -212,7 +214,21 @@ namespace TODOIT.GraphQl.Queries
                     return repository.Get(chatId, name, star, coun, include.Invoke(context.SubFields));
                 });
         }
-      
+
+        public static void Users(IUserRepository repository, ObjectGraphType obj, Func<IDictionary<string, Field>, Expression<Func<ApplicationUser, object>>[]> include)
+        {
+            //TODO add admin Role
+            repository.BaseQuerry<UserGqlType, ApplicationUser, string>("User", obj, include );
+
+            obj.Field<UserGqlType>(
+                "Me",
+                resolve: context =>
+                {
+                    var userId = context.UserContext.GetUserId();
+
+                    return repository.Get(userId, include.Invoke(context.SubFields));
+                });
+        }
 
     }
 }

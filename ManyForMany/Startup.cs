@@ -12,12 +12,15 @@ using GraphQL.Execution;
 using GraphQL.Http;
 using GraphQL.Language.AST;
 using GraphQL.Server;
+using GraphQL.Server.Authorization.AspNetCore;
 using GraphQL.Server.Internal;
 using GraphQL.Server.Transports.AspNetCore;
 using GraphQL.Server.Ui.Playground;
 using GraphQL.Tests.Subscription;
 using GraphQL.Types;
 using GraphQL.Validation;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +38,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Core;
 using OpenIddict.EntityFrameworkCore.Models;
 using OpenIddict.Validation;
+using TODOIT.GraphQl;
 using TODOIT.GraphQl.Queries;
 using TODOIT.GraphQl.Schema;
 using TODOIT.Model.Configuration;
@@ -90,7 +94,7 @@ namespace TODOIT
                 options.UseSqlServer(Config.ConnectionStrings.DefaultConnection);
 
                 options.UseOpenIddict();
-            }, ServiceLifetime.Transient);
+            }, ServiceLifetime.Transient,ServiceLifetime.Transient);
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<Context>()
@@ -148,36 +152,6 @@ namespace TODOIT
 
             await app.ApplicationServices.InitializeRolesAsync();
         }
-
-
-        /*
-        private async Task CreateSkills(Context context)
-        {
-            var rows =
-                File.ReadAllLines(@"C:\Users\RWSwiss\source\repos\ManyForMany\ManyForMany\Data\Skills.txt");
-
-            var skills = rows.Select(x => new Skill(x)).ToArray();
-
-            var errors = new List<Skill>();
-
-            foreach (var skill in skills)
-            {
-                try
-                {
-                    context.Skills.Add(skill);
-                    context.SaveChanges();
-                }
-                catch (Exception e)
-                {
-                    errors.Add(skill);
-                    //var a =  context.Skills.Count();
-                }
-            }
-
-
-        }
-
-        */
     }
 
     public static class StartupExtension
@@ -207,14 +181,21 @@ namespace TODOIT
                     // Enable the token endpoint.
                     options.EnableTokenEndpoint(AuthorizationHelper.TokenEndPoint);
 
+                    //options.IgnoreGrantTypePermissions();
+                    options.AllowCustomFlow(CustomGrantTypes.Google);
+                    options.AllowCustomFlow(CustomGrantTypes.Linkedin);
+                    options.AllowCustomFlow(CustomGrantTypes.Facebook);
+
                     // Enable the password flow.
-                    options.AllowPasswordFlow();
+                    //options.AllowPasswordFlow();
 
                     // Accept anonymous clients (i.e clients that don't send a client_id).
                     options.AcceptAnonymousClients();
 
                     // During development, you can disable the HTTPS requirement.
                     options.DisableHttpsRequirement();
+
+                    
 
                     // Note: to use JWT access tokens instead of the default
                     // encrypted format, the following lines are required:
@@ -249,23 +230,48 @@ namespace TODOIT
 
         public static void GraphQl(this IServiceCollection services)
         {
-            services.AddSingleton<IDataLoaderContextAccessor, DataLoaderContextAccessor>();
+            //services.AddSingleton<IDataLoaderContextAccessor, DataLoaderContextAccessor>();
             services.AddSingleton<IDocumentExecuter, EfDocumentExecuter>();
 
-            services.AddScoped<IOrderRepository, OrderRepository>();
-            services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<ISkillRepository, SkillRepository>();
-            services.AddScoped<IOpinionRepository, OpinionRepository>();
-            services.AddScoped<IChatRepository, ChatRepository>();
-            services.AddScoped<IMessageRepository, MessageRepository>();
+            services.AddTransient<IOrderRepository, OrderRepository>();
+            services.AddTransient<IUserRepository, UserRepository>();
+            services.AddTransient<ISkillRepository, SkillRepository>();
+            services.AddTransient<IOpinionRepository, OpinionRepository>();
+            services.AddTransient<IChatRepository, ChatRepository>();
+            services.AddTransient<IMessageRepository, MessageRepository>();
+            services.AddTransient<ISchema, AppSchema>();
 
-            //services.AddScoped<OwnResolveContext>();
-            //services.AddScoped<AppQuery>();
-            // services.AddScoped<AppMutation>();
-            //services.AddScoped<IDependencyResolver>(s => new FuncDependencyResolver(s.GetRequiredService));
-            services.AddScoped<AppSchema>();
+            services.AddSingleton<AppSchema>();
+            
+            services
+                .AddGraphQL()
+                .AddUserContextBuilder(ctx =>
+                {
+                    var result = ctx.AuthenticateAsync(OpenIddictValidationDefaults.AuthenticationScheme).Result;
 
-            services.AddGraphTypes(ServiceLifetime.Transient);
+                    if (result.Succeeded)
+                    {
+                        return result.Principal.Claims.ToDictionary(x => x.Type, x => (object)x.Value);
+                    }
+
+                    return null;
+                })
+                
+                .AddGraphQLAuthorization(x=>
+                {
+                    x.AddPolicy(Startup.MyAllowSpecificOrigins, x =>
+                    {
+                        x.AddAuthenticationSchemes(OpenIddictValidationDefaults.AuthenticationScheme);
+                        //x.RequireAuthenticatedUser()
+                        x.RequireClaim(OpenIddictConstants.Claims.Subject);
+                    });
+                })
+                
+                .AddDataLoader()
+                .AddGraphTypes(ServiceLifetime.Transient)
+                
+                ;
+
         }
 
         public static void Chat(this IServiceCollection app)
@@ -315,12 +321,16 @@ namespace TODOIT
                          })
                     .AddOAuthValidation()*/
                  ;
-
+            /*
             services.AddAuthorization(x =>
             {
-                var policy = x.GetPolicy(Startup.MyAllowSpecificOrigins);
-                x.DefaultPolicy = policy;
+                x.AddPolicy(Startup.MyAllowSpecificOrigins, x=>
+                {
+                    x.AuthenticationSchemes.Add(OpenIddictValidationDefaults.AuthenticationScheme);
+                    x.RequireAuthenticatedUser();
+                });
             });
+            */
         }
 
         public static void Swagger(this IApplicationBuilder app)
@@ -334,7 +344,26 @@ namespace TODOIT
 
         public static void GraphQl(this IApplicationBuilder app)
         {
-            //app.UseGraphQL<AppSchema>();
+            /*
+            app.UseMiddleware<GraphQLMiddleware>(new GraphQLSettings
+            {
+                BuildUserContext = ctx =>
+                {
+                    var result = ctx.AuthenticateAsync(OpenIddictValidationDefaults.AuthenticationScheme).Result;
+
+                    if (result.Succeeded)
+                    {
+                        return result.Principal.Claims.ToDictionary(x => x.Type, x => (object)x.Value);
+                    }
+
+                    return null;
+                },
+                EnableMetrics = true,
+                ExposeExceptions = true   
+            });
+
+    */
+            app.UseGraphQL<AppSchema>();
             app.UseGraphQLPlayground(options: new GraphQLPlaygroundOptions());
         }
 
@@ -346,21 +375,12 @@ namespace TODOIT
                 x.MapHub<ChatHub>("/chat");
             });
         }
-
-        public static IServiceCollection AddGraphTypes(
-            this IServiceCollection builder,
-            ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
+        public static IGraphQLBuilder AddGraphQLAuthorization(
+            this IGraphQLBuilder builder,
+            Action<AuthorizationOptions> options)
         {
-            return AddGraphTypes(builder, Assembly.GetCallingAssembly(), serviceLifetime);
-        }
+            builder.Services.AddHttpContextAccessor().AddTransient<IValidationRule, AuthorizationValidationRule>().AddAuthorization(options);
 
-        public static IServiceCollection AddGraphTypes(
-            this IServiceCollection builder,
-            Assembly assembly,
-            ServiceLifetime serviceLifetime = ServiceLifetime.Singleton)
-        {
-            foreach (var type in assembly.GetTypes().Where(x => !x.IsAbstract && typeof(IGraphType).IsAssignableFrom(x)))
-                builder.TryAdd(new ServiceDescriptor(type, type, serviceLifetime));
             return builder;
         }
 

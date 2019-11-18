@@ -16,20 +16,19 @@ namespace TODOIT.Model.Entity.Chat
         }
 
 
-        public Chat( Guid orderId)
+        public Chat( Guid id)
         {
-            OrderId = orderId;
+            Id = id;
         }
 
-        [Key]
-        public Guid Id { get; private set; }
 
         [Required]
         public Order.Order Order { get; private set; }
 
         [Required]
+        [Key]
         [ForeignKey(nameof(Order))]
-        public Guid OrderId { get; private set; }
+        public Guid Id { get; private set; }
 
     }
 }

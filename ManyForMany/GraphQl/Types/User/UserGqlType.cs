@@ -18,8 +18,6 @@ namespace TODOIT.GraphQl.Types.User
 {
     public class UserGqlType : ObjectGraphType<ApplicationUser>
     {
-        static object obj = new object();
-
         public UserGqlType(IDataLoaderContextAccessor dataLoader, IOrderRepository orderRepository, ISkillRepository skillRepository, IOpinionRepository opinionRepository)
         {
             Field(x => x.Id, type: typeof(IdGraphType)).Description("Id property from the owner object.");

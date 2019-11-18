@@ -16,10 +16,12 @@ using TODOIT.ViewModel.Order;
 
 namespace TODOIT.Controller.Order
 {
+    [Obsolete]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OpinionController : Microsoft.AspNetCore.Mvc.Controller
     {
+        
         public OpinionController(IOpinionRepository opinionRepository, UserManager<ApplicationUser> userManager)
         {
             UserManager = userManager;
@@ -32,18 +34,7 @@ namespace TODOIT.Controller.Order
 
         private readonly IOpinionRepository _opinionRepository;
 
-
         #endregion
-
-        /// <summary>
-        /// Return all availables rates
-        /// </summary>
-        /// <returns></returns>
-        [MvcHelper.Attributes.HttpGet(nameof(AvailableRates))]
-        public Dictionary<string, int> AvailableRates()
-        {
-            return Enum.GetValues(typeof(Rate)).Cast<Rate>().ToDictionary(x => x.ToString(), x => (int)x);
-        }
 
         /// <summary>
         /// edit existed Order

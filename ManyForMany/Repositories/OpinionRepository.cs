@@ -103,16 +103,24 @@ namespace TODOIT.Repositories
             return accounts.ToLookup(x => x.Author.Id);
         }
 
-        public async Task<Opinion> Create(OpinionViewModel model, string userId, Order order)
+        public async Task<Opinion> Create(CreateOpinionViewModel model, string userId)
         {
-            if (order.Owner.Id == userId)
+            var opinionExistTask = _context.Opinions.AnyAsync(x => x.AuthorId == userId && x.OrderId == model.OrderId);
+
+            var myOrderTask = _context.Orders.AnyAsync(x => x.OwnerId == userId && x.Id == model.OrderId);
+
+            if (await  opinionExistTask)
+            {
+                throw new Exception(Errors.OrderIsNotExistInList);
+            }
+
+            if(await myOrderTask)
             {
                 throw new Exception(Errors.YouCantCommentyourOrder);
             }
+            
+            var opinion = new Opinion(userId, model.OrderId, model);
 
-            var opinion = new Opinion(userId, order.Id, model);
-
-            //order.Opinions.Add(opinion);
             _context.Opinions.Add(opinion);
 
             await _context.SaveChangesAsync();

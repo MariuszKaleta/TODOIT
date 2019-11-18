@@ -23,12 +23,10 @@ namespace TODOIT.Repositories
     public class OrderRepository : IOrderRepository
     {
         private readonly Context _context;
-        private readonly ISkillRepository _skillRepository;
 
-        public OrderRepository(Context context, ISkillRepository skillRepository)
+        public OrderRepository(Context context)
         {
             _context = context;
-            _skillRepository = skillRepository;
         }
 
         public async Task<Order> Get(Guid id, params Expression<Func<Order, object>>[] navigationPropertyPaths)
@@ -109,64 +107,50 @@ namespace TODOIT.Repositories
 
         public async Task AddToInterested(string userId, Guid orderID)
         {
+            var orderAsync = Get(orderID);
+
             if (_context.InterestedOrders.Any(x => x.Order.Id == orderID && x.User.Id == userId))
             {
                 throw new Exception(Errors.YouInterestedThisOrder);
             }
 
-            var order = await Get(orderID);
-            Validate(order, userId);
+            var order = await orderAsync;
 
-            var interested = new InterestedOrder(userId,orderID)
-            {
-            };
-
-            _context.InterestedOrders.Add(interested);
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task AddToInterested(string user, IReadOnlyCollection<Guid> orderIds)
-        {
-            var decisionExists = _context.InterestedOrders.Where(x => x.User.Id == user && orderIds.Contains(x.Order.Id));
-
-            if (decisionExists.Any())
-            {
-                throw new Exception(Errors.YouInterestedThisOrder +
-                                    string.Join('\n', decisionExists.Select(x => x.Order.Id)));
-            }
-
-            foreach (var order in await Get(orderIds))
-            {
-                Validate(order, user);
-            }
-
-            _context.InterestedOrders.AddRange(orderIds.Select(x=> new InterestedOrder(user,x)
-            {
-
-            }));
-
-            await _context.SaveChangesAsync();
-        }
-
-        
-        public static void Validate(Order order, string user)
-        {
             if (order.Status != OrderStatus.CompleteTeam)
             {
                 throw new Exception(Errors.OwnerOfOrderDontLookingForTeam);
             }
 
-            if (order.OwnerId == user)
+            if (order.OwnerId == userId)
             {
                 throw new Exception(Errors.YouCantJoinToYourOrderTeam);
             }
+
+            var interested = new InterestedOrder(userId, orderID);
+            
+            _context.InterestedOrders.Add(interested);
+
+            await _context.SaveChangesAsync();
         }
 
-        public async Task<Order> Create(CreateOrderViewModel model, string user)
+        public async Task RemoveFromInterested(string userId, Guid orderId)
         {
-            var order = new Order(model, user);
+            var interestedOrder = await _context.InterestedOrders.FirstOrDefaultAsync(x => x.Order.Id == orderId && x.User.Id == userId);
 
+            if (interestedOrder == null)
+            {
+                throw new Exception(Errors.YouInterestedThisOrder);
+            }
+
+            _context.InterestedOrders.Remove(interestedOrder);
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Order> Create(CreateOrderViewModel model, string userId)
+        {
+            var order = new Order(model, userId);
+            
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 

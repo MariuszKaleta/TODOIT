@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using TODOIT.Model.Configuration;
 using TODOIT.Model.Entity.Order;
 using TODOIT.Model.Entity.Rate;
 using TODOIT.Model.Entity.Skill;
@@ -14,7 +15,7 @@ namespace TODOIT.Repositories.Contracts
 {
     public interface IOpinionRepository
     {
-        Task<Opinion> Create(OpinionViewModel model, string userId, Order order);
+        Task<Opinion> Create(CreateOpinionViewModel model, string userId);
 
         Task<Opinion> Update(Guid opinionId, OpinionViewModel model);
 
@@ -31,5 +32,28 @@ namespace TODOIT.Repositories.Contracts
         Task<ILookup<Guid, Opinion>> GetByOrderIds(IEnumerable<Guid> ownerIds);
 
         Task<ILookup<string, Opinion>> GetByAuthorIds(IEnumerable<string> authorIds);
+    }
+
+    public static class OpinionRepositoryExtension
+    {
+        public static async Task<Opinion> Update(this  IOpinionRepository repository, Guid opinionId, OpinionViewModel model, string userId)
+        {
+            if (!await repository.IAmAuthor(userId, opinionId))
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+            
+            return await repository.Update(opinionId, model);
+        }
+        public static async Task Delete(this  IOpinionRepository repository, Guid opinionId, string userId)
+        {
+            if (!await repository.IAmAuthor(userId, opinionId))
+            {
+                throw new Exception(Errors.OrderDoseNotExistOrIsNotBelongToYou);
+            }
+
+            repository.Delete(opinionId, true);
+        }
+
     }
 }

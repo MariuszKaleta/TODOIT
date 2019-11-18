@@ -63,7 +63,7 @@ namespace TODOIT.Repositories
             return orderMember;
         }
 
-        public async Task InviteUserToMakeOrder(string[] usersId, Guid orderId)
+        public async Task InviteUserToMakeOrder(Guid orderId, string[] usersId)
         {
             if (_context.OrderMembers.Any(x => usersId.Any(y => y == x.UserId) && x.OrderId == orderId))
             {
@@ -75,13 +75,12 @@ namespace TODOIT.Repositories
                 var orderMember = new OrderMember(userId, orderId);
 
                 _context.OrderMembers.Add(orderMember);
-
             }
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task KickUserFromMakeOrder(string[] usersId, Guid orderId)
+        public async Task KickUserFromMakeOrder(Guid orderId, string[] usersId)
         {
             var orderMember = await Get(orderId, usersId[0]);
 
@@ -89,5 +88,6 @@ namespace TODOIT.Repositories
 
             await _context.SaveChangesAsync();
         }
+
     }
 }

@@ -2,6 +2,9 @@
 {
     public static class Errors
     {
+        public const string ToUseThisYouMustBeLogged = "To use this, you must be logged";
+
+
         public const string UserIsAlredyAdded = "User Is Alredy Added To Project";
         public const string UserIsNotAdded = "User Is Not Added To Project";
         public const string UserIsNotExist = "User Is Not Exist";

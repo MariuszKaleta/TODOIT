@@ -27,7 +27,7 @@ namespace TODOIT.Repositories.Contracts
 
         Task AddUserToChat(Guid chatId, bool saveChanges, params string[] userIds);
 
-        Task RemoveuserFromChat(Guid chatId, bool saveChanges, params string[] userIds);
+        Task RemoveUserFromChat(Guid chatId, bool saveChanges, params string[] userIds);
 
         Task<Chat> GetByOrderId(Guid orderId);
 

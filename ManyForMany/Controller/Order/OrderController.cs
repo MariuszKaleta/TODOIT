@@ -18,11 +18,12 @@ using TODOIT.ViewModel.Order;
 
 namespace TODOIT.Controller.Order
 {
+    [Obsolete]
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
     public class OrderController : Microsoft.AspNetCore.Mvc.Controller
     {
-
+        /*
         public OrderController(UserManager<ApplicationUser> userManager, IOrderRepository orderRepository, IOpinionRepository opinionRepository, IOrderMembersRepository orderMembersRepository, IChatRepository chatRepository)
         {
             UserManager = userManager;
@@ -58,21 +59,6 @@ namespace TODOIT.Controller.Order
             var user = UserManager.GetUserId(User);
 
             await _orderRepository.AddToInterested( user, orderId);
-        }
-
-        /// <summary>
-        /// Maky many decision
-        /// </summary>
-        /// <param name="elements"></param>
-        /// <returns></returns>
-        //[Authorize]
-        [Authorize()]
-        [MvcHelper.Attributes.HttpPost(nameof(AddToInterested))]
-        public async Task AddToInterested(Guid[] ids)
-        {
-            var user = UserManager.GetUserId(User);
-            
-            await _orderRepository.AddToInterested(user, ids);
         }
 
         /// <summary>
@@ -185,5 +171,7 @@ namespace TODOIT.Controller.Order
         }
 
         #endregion
+
+        */
     }
 }

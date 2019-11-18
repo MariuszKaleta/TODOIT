@@ -22,5 +22,7 @@ namespace TODOIT.ViewModel.User
         public string Name { get; set; }
 
         public string Surrname { get; set; }
+
+        public string[] Skills { get; set; }
     }
 }

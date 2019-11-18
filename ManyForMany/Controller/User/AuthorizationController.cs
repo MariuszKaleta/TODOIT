@@ -30,7 +30,7 @@ namespace TODOIT.Controller.User
 {
     [ApiController]
     [MvcHelper.Attributes.Route(MvcHelper.AttributeHelper.Api, MvcHelper.AttributeHelper.Controller)]
-    public class AuthorizationController : Microsoft.AspNetCore.Mvc.Controller
+    public class AuthorizationController : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         private readonly IOptions<IdentityOptions> _identityOptions;
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -60,34 +60,16 @@ namespace TODOIT.Controller.User
             {
                 case CustomGrantTypes.Google:
                     {
-                        throw new NotImplementedException();
+                        var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
 
-                        /*
-                        try
+                        var user = await _userManager.FindByEmailAsync(payload.Email);
+
+                        if (user == null)
                         {
-
-                            // Validate the access token using Google's token validation
-                            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token);
-
-                            var user = await _userManager.FindByEmailAsync(payload.Email);
-
-                            if (user == null)
-                            {
-                                user = await Register(payload);
-                            }
-
-                            if (!await _signInManager.CanSignInAsync(user))
-                                throw new MultiLanguageException(nameof(user), Error.NotAllowedToSignIn);
-                            // Create a new authentication ticket and return sign in
-                            var ticket = await CreateTicketAsync(request, user);
-
-                            return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+                            user = await _userManager.Register(payload);
                         }
-                        catch (InvalidJwtException)
-                        {
-                            throw new MultiLanguageException(nameof(request.Token), OpenIdConnectConstants.Errors.AccessDenied);
-                        }
-                        */
+
+                        return await this.CreateTicketAsync(_signInManager, user, request);
                     }
 
                 case CustomGrantTypes.Linkedin:
@@ -222,92 +204,15 @@ namespace TODOIT.Controller.User
             // will be used to create an id_token, a token or a code.
             var principal = await _signInManager.CreateUserPrincipalAsync(user);
 
-            // Create a new authentication ticket holding the user identity.
-            var ticket = new AuthenticationTicket(principal,
-                new AuthenticationProperties(),
-                OpenIddictServerDefaults.AuthenticationScheme);
-
-            // Set the list of scopes granted to the client application.
-            ticket.SetScopes(new[]
-            {
-                    OpenIdConnectConstants.Scopes.OpenId,
-                    OpenIdConnectConstants.Scopes.Email,
-                    OpenIdConnectConstants.Scopes.Profile,
-                    OpenIddictConstants.Scopes.Roles
-                }.Intersect(request.GetScopes()));
-
-            ticket.SetResources("resource-server");
-
-            foreach (var claim in ticket.Principal.Claims)
-            {
-                claim.SetDestinations(GetDestinations(claim, ticket));
-            }
-
-            return SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+            return await this.CreateTicketAsync(principal, request);
         }
-
-        private IEnumerable<string> GetDestinations(Claim claim, AuthenticationTicket ticket)
-        {
-            // Note: by default, claims are NOT automatically included in the access and identity tokens.
-            // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
-            // whether they should be included in access tokens, in identity tokens or in both.
-
-            switch (claim.Type)
-            {
-                case OpenIdConnectConstants.Claims.Name:
-                    yield return OpenIdConnectConstants.Destinations.AccessToken;
-
-                    if (ticket.HasScope(OpenIdConnectConstants.Scopes.Profile))
-                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
-
-                    yield break;
-
-                case OpenIdConnectConstants.Claims.Email:
-                    yield return OpenIdConnectConstants.Destinations.AccessToken;
-
-                    if (ticket.HasScope(OpenIdConnectConstants.Scopes.Email))
-                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
-
-                    yield break;
-
-                case OpenIdConnectConstants.Claims.Role:
-                    yield return OpenIdConnectConstants.Destinations.AccessToken;
-
-                    if (ticket.HasScope(OpenIddictConstants.Scopes.Roles))
-                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
-
-                    yield break;
-
-                // Never include the security stamp in the access and identity tokens, as it's a secret value.
-                case "AspNet.Identity.SecurityStamp": yield break;
-
-                default:
-                    yield return OpenIdConnectConstants.Destinations.AccessToken;
-                    yield break;
-            }
-        }
-
+      
+        [Obsolete]
         [AllowAnonymous]
         [MvcHelper.Attributes.HttpPost(nameof(Register))]
         public async Task Register(PasswordViewModel model)
         {
-            var user = new ApplicationUser(model);
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-
-            if (!result.Succeeded)
-            {
-                var firstError = result.Errors.FirstOrDefault();
-                throw new MultiLanguageException(firstError.Code, firstError.Description);
-            }
-
-            result = await _userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
-
-            if (!result.Succeeded)
-            {
-                var firstError = result.Errors.FirstOrDefault();
-                throw new MultiLanguageException(firstError.Code, firstError.Description);
-            }
+            await _userManager.Register(model);
         }
 
         #endregion
@@ -414,6 +319,7 @@ namespace TODOIT.Controller.User
                 if (result.Succeeded)
                 {
                     result = await _userManager.AddLoginAsync(user, info);
+
                     if (result.Succeeded)
                     {
                         result = await _userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
@@ -426,12 +332,138 @@ namespace TODOIT.Controller.User
                 AddErrors(result);
             }
         }
+
         private void AddErrors(IdentityResult result)
         {
             foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description);
         }
 
         #endregion
+    }
+
+    public static class AuthorizationExtension
+    {
+        public static async Task<ApplicationUser> Register(this UserManager<ApplicationUser> userManager, GoogleJsonWebSignature.Payload payload)
+        {
+            var user = new ApplicationUser(payload);
+
+            var result = await userManager.CreateAsync(user);
+
+            await Register(userManager, user, result);
+
+            return user;
+        }
+
+        public static async Task<ApplicationUser> Register(this UserManager<ApplicationUser> userManager, PasswordViewModel model)
+        {
+            var user = new ApplicationUser(model);
+
+            var result = await userManager.CreateAsync(user, model.Password);
+
+            await Register(userManager, user, result);
+
+            return user;
+        }
+
+
+        private static async Task Register(this UserManager<ApplicationUser> userManager, ApplicationUser user, IdentityResult result)
+        {
+
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
+            }
+
+            result = await userManager.AddToRoleAsync(user, CustomRoles.BasicUser);
+
+            if (!result.Succeeded)
+            {
+                var firstError = result.Errors.FirstOrDefault();
+                throw new MultiLanguageException(firstError.Code, firstError.Description);
+            }
+        }
+
+        #region token
+
+        public static async Task<IActionResult> CreateTicketAsync(this ControllerBase controller, SignInManager<ApplicationUser> signInManager, ApplicationUser user, OpenIdConnectRequest request)
+        {
+            // Create a new ClaimsPrincipal containing the claims that
+            // will be used to create an id_token, a token or a code.
+            var principal = await signInManager.CreateUserPrincipalAsync(user);
+
+            return await controller.CreateTicketAsync(principal, request);
+
+        }
+        public static async Task<IActionResult> CreateTicketAsync(this ControllerBase controller, ClaimsPrincipal principal, OpenIdConnectRequest request)
+        {
+            // Create a new authentication ticket holding the user identity.
+            var ticket = new AuthenticationTicket(principal,
+                new AuthenticationProperties(),
+                OpenIddictServerDefaults.AuthenticationScheme);
+
+            // Set the list of scopes granted to the client application.
+            ticket.SetScopes(new[]
+            {
+                OpenIdConnectConstants.Scopes.OpenId,
+                OpenIdConnectConstants.Scopes.Email,
+                OpenIdConnectConstants.Scopes.Profile,
+                OpenIddictConstants.Scopes.Roles
+            }.Intersect(request.GetScopes()));
+
+            ticket.SetResources("resource-server");
+
+            foreach (var claim in ticket.Principal.Claims)
+            {
+                claim.SetDestinations(GetDestinations(claim, ticket));
+            }
+
+            return controller.SignIn(ticket.Principal, ticket.Properties, ticket.AuthenticationScheme);
+        }
+        
+        private static IEnumerable<string> GetDestinations(Claim claim, AuthenticationTicket ticket)
+        {
+            // Note: by default, claims are NOT automatically included in the access and identity tokens.
+            // To allow OpenIddict to serialize them, you must attach them a destination, that specifies
+            // whether they should be included in access tokens, in identity tokens or in both.
+
+            switch (claim.Type)
+            {
+                case OpenIdConnectConstants.Claims.Name:
+                    yield return OpenIdConnectConstants.Destinations.AccessToken;
+
+                    if (ticket.HasScope(OpenIdConnectConstants.Scopes.Profile))
+                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
+
+                    yield break;
+
+                case OpenIdConnectConstants.Claims.Email:
+                    yield return OpenIdConnectConstants.Destinations.AccessToken;
+
+                    if (ticket.HasScope(OpenIdConnectConstants.Scopes.Email))
+                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
+
+                    yield break;
+
+                case OpenIdConnectConstants.Claims.Role:
+                    yield return OpenIdConnectConstants.Destinations.AccessToken;
+
+                    if (ticket.HasScope(OpenIddictConstants.Scopes.Roles))
+                        yield return OpenIdConnectConstants.Destinations.IdentityToken;
+
+                    yield break;
+
+                // Never include the security stamp in the access and identity tokens, as it's a secret value.
+                case "AspNet.Identity.SecurityStamp": yield break;
+
+                default:
+                    yield return OpenIdConnectConstants.Destinations.AccessToken;
+                    yield break;
+            }
+        }
+
+        #endregion
+
 
     }
 }

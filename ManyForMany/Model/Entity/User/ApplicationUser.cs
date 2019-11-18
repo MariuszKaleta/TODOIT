@@ -15,6 +15,15 @@ namespace TODOIT.Model.Entity.User
 
         }
 
+        public ApplicationUser(GoogleJsonWebSignature.Payload payload)
+        {
+            Name = payload.GivenName;
+            Surrname = payload.FamilyName;
+            Email = payload.Email;
+            Picture = payload.Picture;
+            UserName = payload.Email;
+        }
+
         public ApplicationUser(ExternalLoginViewModel model) : this((UserViewModel)model)
         {
             Id = model.Id;
@@ -43,6 +52,8 @@ namespace TODOIT.Model.Entity.User
         public string Name { get; set; }
 
         public string Surrname { get; set; }
+
+        public string Picture { get; set; }
 
  
         #region Skills

@@ -117,7 +117,7 @@ namespace TODOIT.Repositories
 
         public async Task<Chat> GetByOrderId(Guid orderId)
         {
-            return await _context.Chats.FirstOrDefaultAsync(x => x.OrderId == orderId);
+            return await _context.Chats.FirstOrDefaultAsync(x => x.Id == orderId);
         }
 
         public async Task AddUserToChat(Guid chatId, bool saveChanges, params string[] userIds)
@@ -133,7 +133,7 @@ namespace TODOIT.Repositories
                 await _context.SaveChangesAsync();
         }
 
-        public async Task RemoveuserFromChat(Guid chatId, bool saveChanges, params string[] userIds)
+        public async Task RemoveUserFromChat(Guid chatId, bool saveChanges, params string[] userIds)
         {
             var chatMembers = _context.ChatMembers.Where(x => userIds.Any(y => y == x.UserId));
 
@@ -147,7 +147,7 @@ namespace TODOIT.Repositories
 
         public async Task<Chat> Create(Guid orderId)
         {
-            if (_context.Chats.Any(x => x.OrderId == orderId))
+            if (_context.Chats.Any(x => x.Id == orderId))
             {
                 throw new Exception(Errors.ChatIsExist);
             }

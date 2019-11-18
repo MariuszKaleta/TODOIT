@@ -12,9 +12,9 @@ namespace TODOIT.Repositories.Contracts
 {
     public interface IUserRepository : IRepository<ApplicationUser, string>
     {
-        Task<ApplicationUser> Update(ApplicationUser obj, UserViewModel model);
+        Task<ApplicationUser> Update(string obj, UserViewModel model);
 
-        Task<string[]> UpdateSkills(string obj, string[] model);
+        Task<string[]> UpdateSkills(string userId, string[] model);
 
         Task<ApplicationUser[]> GetInvitetedUserToMakeOrder(Guid orderId);
 

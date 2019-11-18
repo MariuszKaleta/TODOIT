@@ -46,8 +46,7 @@ namespace TODOTest
         {
             var httpClient = new HttpClient();
 
-
-            var queryObject = new GraphQLQuery()
+            var queryObject = new 
             {
                 Query = @"query { 
                 opinions { 
